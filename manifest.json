@@ -1,0 +1,80 @@
+{
+  "manifest_version": 1,
+  "id": "com.vyrnax.cronpulse",
+  "name": "Cron表达式生成器",
+  "publisher": "vyrnax",
+  "version": "0.1.0",
+  "description": "Cron 表达式双向生成与校验：Unix/Spring/Quartz 全方言，中英可读描述，时区与 DST 感知的执行时间预测，方言互转与多生态代码片段，完全离线。",
+  "icon": "assets/plugin.svg",
+  "source": "https://github.com/vyrnax/dbx-plugin-cronpulse",
+  "homepage": "https://github.com/vyrnax/dbx-plugin-cronpulse",
+  "engines": {
+    "dbx": ">=0.6.21",
+    "host_api": "1"
+  },
+  "permissions": [
+    "host.storage"
+  ],
+  "entrypoints": {
+    "ui": {
+      "root": "ui",
+      "entry": "ui/index.html"
+    }
+  },
+  "contributions": [
+    {
+      "type": "workbench",
+      "id": "com.vyrnax.cronpulse.main",
+      "label": "Cron表达式生成器",
+      "description": "Cron 表达式生成与校验工作台：全方言解析、可读描述与执行时间预测",
+      "icon": "assets/plugin.svg"
+    },
+    {
+      "type": "command",
+      "id": "com.vyrnax.cronpulse.cmd.main",
+      "label": "打开 Cron 工作台",
+      "description": "打开 Cron 表达式生成与校验工作台",
+      "icon": "assets/plugin.svg",
+      "action": {
+        "type": "open-workbench",
+        "workbench": "com.vyrnax.cronpulse.main",
+        "presentation": "tab"
+      }
+    },
+    {
+      "type": "menus",
+      "id": "com.vyrnax.cronpulse.menus.main",
+      "items": [
+        {
+          "location": "appToolbar",
+          "command": "com.vyrnax.cronpulse.cmd.main",
+          "group": "navigation",
+          "order": 1,
+          "default_visible": true
+        },
+        {
+          "location": "commandPalette",
+          "command": "com.vyrnax.cronpulse.cmd.main",
+          "group": "navigation",
+          "order": 1
+        }
+      ]
+    }
+  ],
+  "localizations": {
+    "en": {
+      "name": "CronPulse",
+      "description": "Two-way Cron expression builder and validator: full Unix/Spring/Quartz dialects, bilingual readable descriptions, timezone and DST aware execution forecasts, dialect conversion and multi-ecosystem code snippets, fully offline.",
+      "contributions": {
+        "com.vyrnax.cronpulse.main": {
+          "label": "CronPulse",
+          "description": "Cron expression workbench"
+        },
+        "com.vyrnax.cronpulse.cmd.main": {
+          "label": "Open Cron workbench",
+          "description": "Open the Cron expression workbench"
+        }
+      }
+    }
+  }
+}

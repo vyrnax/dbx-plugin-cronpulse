@@ -1,0 +1,33 @@
+{
+  "note": "按各方言官方 CronExpression 规范构造的权威表达式；first 为规范推导的首次 UTC 执行时刻",
+  "from": "2026-01-01T00:00:00.000Z",
+  "cases": [
+    { "dialect": "quartz", "expr": "0 0 12 * * ?", "first": "2026-01-01T12:00:00.000Z", "zh": "12", "en": "12" },
+    { "dialect": "quartz", "expr": "0 15 10 ? * *", "first": "2026-01-01T10:15:00.000Z", "zh": "10", "en": "10" },
+    { "dialect": "quartz", "expr": "0 15 10 * * ? 2026", "first": "2026-01-01T10:15:00.000Z", "zh": "10", "en": "10" },
+    { "dialect": "quartz", "expr": "0 * 14 * * ?", "first": "2026-01-01T14:00:00.000Z", "zh": "14", "en": "14" },
+    { "dialect": "quartz", "expr": "0 0/5 14 * * ?", "first": "2026-01-01T14:00:00.000Z", "zh": "14", "en": "14" },
+    { "dialect": "quartz", "expr": "0 0/5 14,18 * * ?", "first": "2026-01-01T14:00:00.000Z", "zh": "14", "en": "14" },
+    { "dialect": "quartz", "expr": "0 0-5 14 * * ?", "first": "2026-01-01T14:00:00.000Z", "zh": "14", "en": "14" },
+    { "dialect": "quartz", "expr": "0 10,44 14 ? 3 WED", "first": "2026-03-04T14:10:00.000Z", "zh": "14", "en": "14" },
+    { "dialect": "quartz", "expr": "0 15 10 ? * MON-FRI", "first": "2026-01-01T10:15:00.000Z", "zh": "10", "en": "10" },
+    { "dialect": "quartz", "expr": "0 15 10 15 * ?", "first": "2026-01-15T10:15:00.000Z", "zh": "15", "en": "15" },
+    { "dialect": "quartz", "expr": "0 15 10 L * ?", "first": "2026-01-31T10:15:00.000Z", "zh": "本月最后一天", "en": "last day" },
+    { "dialect": "quartz", "expr": "0 15 10 ? * 6#3", "first": "2026-01-16T10:15:00.000Z", "zh": "第 3 个星期五", "en": "3rd Friday" },
+    { "dialect": "spring", "expr": "0 0 0 * * *", "first": "2026-01-02T00:00:00.000Z", "zh": "0", "en": "0" },
+    { "dialect": "spring", "expr": "0 0 12 * * *", "first": "2026-01-01T12:00:00.000Z", "zh": "12", "en": "12" },
+    { "dialect": "spring", "expr": "0 15 10 * * *", "first": "2026-01-01T10:15:00.000Z", "zh": "10", "en": "10" },
+    { "dialect": "spring", "expr": "0 0/5 14 * * *", "first": "2026-01-01T14:00:00.000Z", "zh": "14", "en": "14" },
+    { "dialect": "spring", "expr": "0 0 12 1 * *", "first": "2026-01-01T12:00:00.000Z", "zh": "1", "en": "1" },
+    { "dialect": "spring", "expr": "0 0 12 L * *", "first": "2026-01-31T12:00:00.000Z", "zh": "本月最后一天", "en": "last day" },
+    { "dialect": "spring", "expr": "0 0 12 L-3 * *", "first": "2026-01-28T12:00:00.000Z", "zh": "倒数第 3 天", "en": "3rd-to-last" },
+    { "dialect": "spring", "expr": "0 0 12 LW * *", "first": "2026-01-30T12:00:00.000Z", "zh": "最后一个工作日", "en": "last weekday" },
+    { "dialect": "spring", "expr": "0 0 12 15W * *", "first": "2026-01-15T12:00:00.000Z", "zh": "距 15 号", "en": "nearest weekday to the 15th" },
+    { "dialect": "spring", "expr": "0 0 12 ? * 5L", "first": "2026-01-30T12:00:00.000Z", "zh": "最后一个星期五", "en": "last Friday" },
+    { "dialect": "spring", "expr": "0 0 12 ? * 5#3", "first": "2026-01-16T12:00:00.000Z", "zh": "第 3 个星期五", "en": "3rd Friday" },
+    { "dialect": "spring", "expr": "0 0 12 ? * MON-FRI", "first": "2026-01-01T12:00:00.000Z", "zh": "星期一至星期五", "en": "Monday through Friday" },
+    { "dialect": "spring", "expr": "0 0 9-17 * * MON-FRI", "first": "2026-01-01T09:00:00.000Z", "zh": "9", "en": "9" },
+    { "dialect": "spring", "expr": "@daily", "first": "2026-01-02T00:00:00.000Z", "zh": "0", "en": "0" },
+    { "dialect": "spring", "expr": "0 0 12 1 1 *", "first": "2026-01-01T12:00:00.000Z", "zh": "一月", "en": "January" }
+  ]
+}

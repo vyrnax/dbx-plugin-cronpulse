@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="app.title">Cron表达式生成器</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" class="app">
+  <header id="topbar" class="topbar" hidden>
+    <div id="expr-badges" class="badges" aria-live="polite" hidden></div>
+    <label class="control" hidden><span data-i18n="dst.label">缺失时刻</span><select id="sel-dst"></select></label>
+    <div id="favorites-area" class="favorites-area" hidden></div>
+    <div id="history-area" class="chips" hidden></div>
+  </header>
+
+  <section id="statusbar" class="statusbar" aria-live="polite">
+    <span id="status-dot" class="status-dot"></span>
+    <span id="status-text" class="status-text"></span>
+    <ul id="error-list" class="error-list"></ul>
+  </section>
+
+  <div id="banner-no-storage" class="banner" hidden>
+    <span id="banner-no-storage-text"></span>
+  </div>
+  <div id="banner-intl" class="banner" data-i18n="banner.intlMissing" hidden></div>
+
+  <main id="main" class="main">
+    <section id="builder" class="panel builder">
+      <div class="panel-head">
+        <h2 data-i18n="builder.title">字段构建器</h2>
+        <div class="builder-controls">
+          <label class="control"><span data-i18n="dialect.label">方言</span><select id="sel-dialect"></select></label>
+          <label class="control"><span data-i18n="timezone.label">时区</span><select id="sel-timezone"></select></label>
+          <input id="tz-free" class="tz-free" type="text" spellcheck="false" hidden
+                 data-i18n-placeholder="timezone.freePlaceholder" placeholder="Area/City">
+          <label id="year-toggle-wrap" class="year-toggle" hidden>
+            <input type="checkbox" id="chk-year">
+            <span data-i18n="builder.year">指定年份 (Year)</span>
+          </label>
+        </div>
+      </div>
+      <div id="field-cards" class="field-cards">
+        <div id="card-sec" class="field-card" data-field="sec"></div>
+        <div id="card-min" class="field-card" data-field="min"></div>
+        <div id="card-hour" class="field-card" data-field="hour"></div>
+        <div id="card-dom" class="field-card" data-field="dom"></div>
+        <div id="card-month" class="field-card" data-field="month"></div>
+        <div id="card-dow" class="field-card" data-field="dow"></div>
+        <div id="card-year" class="field-card" data-field="year" hidden></div>
+      </div>
+      <div class="expr-row">
+        <label class="sr-only" for="expr-input" data-i18n="expr.label">Cron 表达式</label>
+        <input id="expr-input" class="expr-input" type="text" spellcheck="false" autocomplete="off"
+               data-i18n-placeholder="expr.placeholder" placeholder="0 0 12 * * ?">
+        <button id="btn-copy" type="button" data-i18n="common.copy">复制</button>
+        <button id="btn-reset" type="button" data-i18n="builder.reset">重置</button>
+      </div>
+      <div id="view-describe" class="summary-bar" role="status"></div>
+      <div id="focus-editor" class="focus-editor"></div>
+      <div id="dialect-hint" class="dialect-hint"></div>
+    </section>
+
+    <div class="side-col">
+      <section id="preset-panel" class="panel presets">
+        <h2 class="presets-title">
+          <svg class="presets-icon" viewBox="0 0 1037 1024" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M253.006446 0.428015a237.880973 237.880973 0 0 1 237.880973 238.733593v237.880973H253.006446A238.733593 238.733593 0 1 1 253.006446 0.428015z m0 1023.14397a238.733593 238.733593 0 1 1 0-476.614566h237.880973v238.733593A237.028353 237.028353 0 0 1 253.006446 1023.571985zM799.53585 0.428015a238.733593 238.733593 0 0 1 0 476.614566h-238.733593V239.161608A238.733593 238.733593 0 0 1 799.53585 0.428015z m0 1023.14397a237.028353 237.028353 0 0 1-238.733593-237.880973v-238.733593h238.733593a238.733593 238.733593 0 0 1 0 476.614566z"></path></svg>
+          <span data-i18n="presets.title">常用预设</span>
+        </h2>
+        <div id="preset-area" class="preset-grid" role="group"></div>
+      </section>
+
+      <section class="panel results">
+        <nav id="tabs" class="tabs" role="tablist">
+          <button id="tab-describe" class="tab" type="button" role="tab" hidden data-i18n="tabs.describe">描述</button>
+          <button id="tab-timeline" class="tab" type="button" role="tab" data-i18n="tabs.timeline">执行时间线</button>
+          <button id="tab-snippets" class="tab" type="button" role="tab" data-i18n="tabs.snippets">代码片段</button>
+        </nav>
+        <div id="view-timeline" class="view" role="tabpanel" hidden>
+          <div class="timeline-toolbar">
+            <label class="control"><span data-i18n="count.label">条数</span><select id="sel-count"></select></label>
+          </div>
+          <ul id="timeline-list" class="timeline-list"></ul>
+          <canvas id="timeline-canvas" class="timeline-canvas"></canvas>
+        </div>
+        <div id="view-snippets" class="view" role="tabpanel" hidden></div>
+        <div id="compare-bar" class="compare-bar"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+</div>
+
+<script src="i18n.js"></script>
+<script src="bridge.js"></script>
+<script src="cron/dialect.js"></script>
+<script src="cron/bits.js"></script>
+<script src="cron/parse.js"></script>
+<script src="cron/validate.js"></script>
+<script src="cron/tz.js"></script>
+<script src="cron/next.js"></script>
+<script src="cron/describe.js"></script>
+<script src="cron/convert.js"></script>
+<script src="cron/engine.js"></script>
+<script src="builder.js"></script>
+<script src="timeline.js"></script>
+<script src="snippets.js"></script>
+<script src="store.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

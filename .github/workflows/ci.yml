@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # 留一个手动入口，便于不打 tag 也能验证 CI 本身
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: 安装差分测试依赖
+        run: npm ci
+
+      - name: 单测与差分测试
+        run: node --test
+
+      - name: 前端静态闸门
+        run: python _domcheck.py
+
+      - name: 安装打包 CLI
+        run: npm i -g "@dbx-app/plugin-cli@0.1.9"
+
+      - name: 出包
+        run: dbx-plugin package . --target universal --output-dir dist
+
+      - name: 包结构闸门
+        run: node _verify.mjs "dist/*.dbxp"
+
+      # 候选生成器要到真正发版时才第一次被执行，schema 自检或 provenance 闸门里的
+      # 任何错误都会拖到那一刻才暴露。分支 CI 的 GITHUB_REF 不是 tag，provenance
+      # 必然不通过，所以显式带 --allow-unverified —— 该产物不可提交商店。
+      - name: 商店候选生成器冒烟（产物不可提交）
+        run: node _storecandidate.mjs --allow-unverified --out dist/store-candidate
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dbx-plugin-universal
+          path: |
+            dist/*.dbxp
+            dist/*.artifact.json
+          if-no-files-found: error
+          retention-days: 14
