@@ -69,7 +69,8 @@ test('片段生成：支持与不支持明确区分，不产出假代码', () =>
   assert.equal(special.find((item) => item.id === 'xxljob').supported, true);
 
   const named = CP.snippets.generate('0 0 12 ? * MON-FRI', quartz, { tz: 'UTC' });
-  assert.equal(named.find((item) => item.id === 'robfig').supported, false);
+  // robfig 支持名称：MON-FRI 应可作为片段产出
+  assert.equal(named.find((item) => item.id === 'robfig').supported, true);
   const random = CP.snippets.generate('6~15 * * * *', D.get('unix'), { tz: 'UTC' });
   assert.equal(random.find((item) => item.id === 'xxljob').supported, false);
 });

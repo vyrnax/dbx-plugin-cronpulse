@@ -33,8 +33,8 @@ test('名称只接受前 3 字母并给出建议', () => {
   assert.ok(long.some((issue) => issue.code === 'NAME_TOO_LONG' && issue.params.suggestion === 'JAN'));
   assert.ok(codes('0 12 * XYZ *', 'unix').includes('BAD_NAME'));
   assert.equal(check('0 15 10 ? * MON-FRI', 'quartz').result.status, 'valid');
-  const robfig = codes('15 10 ? * MON-FRI', 'robfig');
-  assert.ok(robfig.includes('NAMES_NOT_SUPPORTED'));
+  // 官方 Go 调度库的标准格式表允许月份与星期名称，不应报 NAMES_NOT_SUPPORTED
+  assert.equal(check('15 10 ? * MON-FRI', 'robfig').result.status, 'valid');
 });
 
 test('问号与方言专属字符', () => {

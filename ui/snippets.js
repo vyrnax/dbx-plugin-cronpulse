@@ -1,6 +1,13 @@
 CP.snippets = (function () {
   "use strict";
 
+  const PLATFORMS = ["k8s", "xxljob", "crontab"];
+  let activeId = null;
+
+  function groupOf(id) {
+    return PLATFORMS.indexOf(id) >= 0 ? "platform" : "lang";
+  }
+
   function converted(expr, dialect, targetName) {
     const ast = CP.cron.parse.parse(expr, dialect);
     return CP.cron.convert.convert(ast, dialect, targetName);
@@ -50,7 +57,7 @@ CP.snippets = (function () {
         }
       },
       {
-        id: "robfig", needs: ["special", "names", "lastN", "nth", "W", "Lminus"], dialect: "unix",
+        id: "robfig", needs: ["special"], dialect: "unix",
         code: function (value) {
           return 'c := cron.New(cron.WithParser(\n    cron.NewParser(cron.SecondOptional | cron.Descriptor),\n))\n// CRON_TZ=' + zone + ' ' + value + '\nc.AddFunc("' + value + '", func() { /* ... */ })';
         }
@@ -64,7 +71,7 @@ CP.snippets = (function () {
       {
         id: "croniter", needs: ["special", "lastN", "nth", "W", "Lminus"], dialect: "unix",
         code: function (value) {
-          return 'from croniter import croniter\nimport zoneinfo\nbase = datetime.now(zoneinfo.ZoneInfo("' + zone + '"))\nitr = croniter("' + value + '", base)';
+          return 'from croniter import croniter\nimport zoneinfo\nfrom datetime import datetime\nbase = datetime.now(zoneinfo.ZoneInfo("' + zone + '"))\nitr = croniter("' + value + '", base)\nprint(itr.get_next(datetime))';
         }
       },
       {
@@ -96,6 +103,7 @@ CP.snippets = (function () {
       const check = requires(expr, dialect, target.dialect, target.needs);
       return {
         id: target.id,
+        group: groupOf(target.id),
         label: CP.i18n.t("snippets." + target.id),
         supported: check.ok,
         reason: check.ok ? null : check.reason,
@@ -122,42 +130,63 @@ CP.snippets = (function () {
       return;
     }
     const items = generate(result.ast.raw, result.dialect, state);
-    const title = document.createElement("h3");
-    title.textContent = CP.i18n.t("snippets.title");
-    el.appendChild(title);
+    const group = state && state.tab === "deploy" ? "platform" : "lang";
+    const visible = items.filter(function (item) { return item.group === group; });
 
-    const matrix = document.createElement("div");
-    matrix.className = "badges";
-    for (const item of items) {
-      const badge = document.createElement("span");
-      badge.className = "badge";
-      badge.setAttribute("data-supported", item.supported ? "yes" : "no");
-      badge.textContent = item.label + ": " + (item.supported
-        ? CP.i18n.t("snippets.supported")
-        : CP.i18n.t("snippets.unsupported"));
-      matrix.appendChild(badge);
+    let found = false;
+    for (const item of visible) {
+      if (item.id === activeId) { found = true; break; }
     }
-    el.appendChild(matrix);
+    if (!found) activeId = visible.length ? visible[0].id : null;
 
-    for (const item of items) {
-      const block = document.createElement("div");
-      block.className = "timeline-row";
-      const heading = document.createElement("strong");
-      heading.textContent = item.label;
-      block.appendChild(heading);
-      if (!item.supported) {
+    const buttons = [];
+    const host = document.createElement("div");
+    host.className = "snippet-code-host";
+
+    function paint() {
+      for (const button of buttons) {
+        const selected = button.getAttribute("data-snippet") === activeId;
+        button.setAttribute("aria-pressed", selected ? "true" : "false");
+      }
+      host.textContent = "";
+      let current = null;
+      for (const item of visible) {
+        if (item.id === activeId) { current = item; break; }
+      }
+      if (!current) return;
+      if (!current.supported) {
         const warning = document.createElement("p");
         warning.className = "timeline-note";
-        warning.textContent = CP.i18n.t("snippets.unsupported") + ": " + item.reason;
-        block.appendChild(warning);
-      } else {
-        const pre = document.createElement("pre");
-        pre.className = "compare-value";
-        pre.textContent = item.code;
-        block.appendChild(pre);
+        warning.textContent = CP.i18n.t("snippets.unsupported") + ": " + current.reason;
+        host.appendChild(warning);
+        return;
       }
-      el.appendChild(block);
+      const pre = document.createElement("pre");
+      pre.className = "snippet-code";
+      pre.textContent = current.code;
+      host.appendChild(pre);
     }
+
+    const box = document.createElement("div");
+    box.className = "snippet-tabs";
+    for (const item of visible) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip";
+      button.setAttribute("data-snippet", item.id);
+      button.setAttribute("data-supported", item.supported ? "yes" : "no");
+      button.setAttribute("aria-pressed", "false");
+      button.textContent = item.label;
+      button.addEventListener("click", function () {
+        activeId = item.id;
+        paint();
+      });
+      buttons.push(button);
+      box.appendChild(button);
+    }
+    el.appendChild(box);
+    el.appendChild(host);
+    paint();
   }
 
   return { generate: generate, compatibility: compatibility, render: render };

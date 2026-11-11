@@ -10,7 +10,7 @@
 <div id="app" class="app">
   <header id="topbar" class="topbar" hidden>
     <div id="expr-badges" class="badges" aria-live="polite" hidden></div>
-    <label class="control" hidden><span data-i18n="dst.label">缺失时刻</span><select id="sel-dst"></select></label>
+    <label class="control"><span data-i18n="dst.label">缺失时刻</span><select id="sel-dst"></select></label>
     <div id="favorites-area" class="favorites-area" hidden></div>
     <div id="history-area" class="chips" hidden></div>
   </header>
@@ -74,8 +74,9 @@
       <section class="panel results">
         <nav id="tabs" class="tabs" role="tablist">
           <button id="tab-describe" class="tab" type="button" role="tab" hidden data-i18n="tabs.describe">描述</button>
-          <button id="tab-timeline" class="tab" type="button" role="tab" data-i18n="tabs.timeline">执行时间线</button>
+          <button id="tab-timeline" class="tab" type="button" role="tab" data-i18n="tabs.timeline">执行计划</button>
           <button id="tab-snippets" class="tab" type="button" role="tab" data-i18n="tabs.snippets">代码片段</button>
+          <button id="tab-deploy" class="tab" type="button" role="tab" data-i18n="tabs.deploy">部署脚本</button>
         </nav>
         <div id="view-timeline" class="view" role="tabpanel" hidden>
           <div class="timeline-toolbar">

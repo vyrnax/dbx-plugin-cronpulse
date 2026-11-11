@@ -18,11 +18,39 @@ CP.builder = (function () {
   let activeKey = null;
   let lastResult = null;
   let lastState = null;
+  let pendingFocus = null;
 
   function t(key, params) { return CP.i18n.t(key, params); }
 
+  // 星期字段的可编辑数字域随方言基准变化（Quartz 为 1-7），不能沿用共享的 field.min；
+  // 其余字段（含 dom/month/sec/min/hour/year）保持声明区间。
+  function numericBounds(field, dialect) {
+    return field.key === "dow" ? dialect.dowRange() : { min: field.min, max: field.max };
+  }
+
+  function longName(key) { return t("field.long." + key); }
+  function unitName(key) { return t("field.unit." + key); }
+
+  function appendInline(controls, key, unit, slots) {
+    const parts = t(key, { unit: unit }).split(/(\{a\}|\{b\})/);
+    for (const part of parts) {
+      if (part === "{a}" && slots.a) controls.appendChild(slots.a);
+      else if (part === "{b}" && slots.b) controls.appendChild(slots.b);
+      else if (part) controls.appendChild(document.createTextNode(part));
+    }
+  }
+
   function tokensOf(state) {
-    return String(state.expr || "").trim().split(/\s+/).filter(Boolean);
+    const text = String(state.expr || "").trim();
+    // 宏整体（如 @daily / @weekly）必须先展开再按字段修改：
+    // 否则宏名会占据首 token，修改第 2 个及以后字段时拼出 "@weekly * 5 * * *" 这类垃圾。
+    // @reboot 无时刻语义（展开值为 null），保持原样交给校验器给出专属警告。
+    if (text.charAt(0) === "@") {
+      const dialect = CP.cron.dialect.get(state.dialect);
+      const expanded = dialect && dialect.macroTable()[text.toLowerCase()];
+      if (expanded) return expanded.split(/\s+/).filter(Boolean);
+    }
+    return text.split(/\s+/).filter(Boolean);
   }
 
   function update(state, key, value) {
@@ -31,7 +59,11 @@ CP.builder = (function () {
     const index = dialect.fieldIndexOf(key);
     if (index < 0) return;
     const tokens = tokensOf(state);
-    while (tokens.length <= index) tokens.push("*");
+    const fields = dialect.getFields();
+    const required = fields.filter(function (field) { return !field.optional; }).length;
+    const count = state.yearEnabled && dialect.allows("year") ? fields.length : required;
+    const wanted = Math.max(count, index + 1);
+    while (tokens.length < wanted) tokens.push("*");
     tokens[index] = value || "*";
     state.expr = tokens.join(" ");
     const input = CP.app.$("expr-input");
@@ -191,11 +223,12 @@ CP.builder = (function () {
   }
 
   function seedToken(mode, field, dialect) {
+    const bounds = numericBounds(field, dialect);
     switch (mode) {
       case "every": return "*";
       case "none": return "?";
-      case "step": return "*/1";
-      case "range": return field.min + "-" + field.max;
+      case "step": return bounds.min + "/1";
+      case "range": return bounds.min + "-" + bounds.max;
       case "specific": return String(field.key === "dow" ? fromCanonical(0, dialect) : field.min);
       case "lastDom": return "L";
       case "lastWeekday": return "LW";
@@ -285,7 +318,7 @@ CP.builder = (function () {
       dot.className = "fdot fdot-" + item.key;
       dot.setAttribute("aria-hidden", "true");
       const text = document.createElement("span");
-      text.textContent = t(item.i18nKey);
+      text.textContent = t("field.long." + item.key);
       tab.appendChild(dot);
       tab.appendChild(text);
       tab.addEventListener("click", function () {
@@ -306,7 +339,7 @@ CP.builder = (function () {
     head.className = "focus-head";
     const title = document.createElement("span");
     title.className = "focus-title";
-    title.textContent = t(currentField.i18nKey);
+    title.textContent = t("builder.editField", { field: longName(currentField.key) });
     const value = document.createElement("code");
     value.className = "focus-token";
     value.textContent = token || "—";
@@ -338,7 +371,7 @@ CP.builder = (function () {
 
     function addMode(name, labelKey, buildControls) {
       const row = document.createElement("div");
-      row.className = "mode-row";
+      row.className = labelKey ? "mode-row" : "mode-row mode-row-inline";
       const label = document.createElement("label");
       label.className = "mode-label";
       const radio = document.createElement("input");
@@ -352,10 +385,15 @@ CP.builder = (function () {
         if (seed !== null) update(state, currentField.key, seed);
         else renderFocus(lastResult, lastState);
       });
-      const text = document.createElement("span");
-      text.textContent = t(labelKey);
       label.appendChild(radio);
-      label.appendChild(text);
+      if (labelKey) {
+        const text = document.createElement("span");
+        text.textContent = t(labelKey, {
+          unit: unitName(currentField.key),
+          field: longName(currentField.key)
+        });
+        label.appendChild(text);
+      }
       row.appendChild(label);
       if (buildControls) {
         const controls = document.createElement("div");
@@ -367,35 +405,30 @@ CP.builder = (function () {
     }
 
     function buildStepControls(controls, enabled) {
-      const startOptions = [{ value: "*", text: t("builder.fromStart") }]
-        .concat(numericOptions(currentField.min, currentField.max));
-      const endOptions = [{ value: "", text: t("builder.noneEnd") }]
-        .concat(numericOptions(currentField.min, currentField.max));
-      const stepOptions = numericOptions(1, currentField.max - currentField.min + 1);
+      const bounds = numericBounds(currentField, dialect);
       const match = /^(\*|\d{1,4})(?:-(\d{1,4}))?\/(\d{1,4})$/.exec(token);
-      const startSel = makeSelect(startOptions, match ? match[1] : "*", "builder.from");
-      const endSel = makeSelect(endOptions, match && match[2] ? match[2] : "", "builder.to");
-      const stepSel = makeSelect(stepOptions, match ? match[3] : "1", "builder.step");
+      const stepSel = makeSelect(numericOptions(1, bounds.max - bounds.min + 1),
+        match ? match[3] : "1", "builder.step");
+      const startSel = makeSelect(numericOptions(bounds.min, bounds.max),
+        match && match[1] !== "*" ? match[1] : String(bounds.min), "builder.from");
       const applyStep = function () {
-        let start = startSel.value;
-        const end = endSel.value;
-        if (end && start === "*") start = String(currentField.min);
-        const next = (start === "*" && !end ? "*/" : start + (end ? "-" + end : "") + "/") + stepSel.value;
-        update(state, currentField.key, next);
+        update(state, currentField.key, startSel.value + "/" + stepSel.value);
       };
-      for (const select of [startSel, endSel, stepSel]) {
+      for (const select of [stepSel, startSel]) {
         select.disabled = !enabled;
         select.addEventListener("change", applyStep);
-        controls.appendChild(select);
       }
+      appendInline(controls, "builder.mode.cycleInline", unitName(currentField.key),
+        { a: stepSel, b: startSel });
     }
 
     function buildRangeControls(controls, enabled) {
+      const bounds = numericBounds(currentField, dialect);
       const match = /^([A-Za-z]{3}|\d{1,4})-([A-Za-z]{3}|\d{1,4})$/.exec(token);
-      const fromSel = makeSelect(numericOptions(currentField.min, currentField.max),
-        match && /^\d+$/.test(match[1]) ? match[1] : String(currentField.min), "builder.from");
-      const toSel = makeSelect(numericOptions(currentField.min, currentField.max),
-        match && /^\d+$/.test(match[2]) ? match[2] : String(currentField.max), "builder.to");
+      const fromSel = makeSelect(numericOptions(bounds.min, bounds.max),
+        match && /^\d+$/.test(match[1]) ? match[1] : String(bounds.min), "builder.from");
+      const toSel = makeSelect(numericOptions(bounds.min, bounds.max),
+        match && /^\d+$/.test(match[2]) ? match[2] : String(bounds.max), "builder.to");
       const applyRange = function () {
         if (Number(toSel.value) < Number(fromSel.value)) return;
         update(state, currentField.key, fromSel.value + "-" + toSel.value);
@@ -403,8 +436,9 @@ CP.builder = (function () {
       for (const select of [fromSel, toSel]) {
         select.disabled = !enabled;
         select.addEventListener("change", applyRange);
-        controls.appendChild(select);
       }
+      appendInline(controls, "builder.mode.rangeInline", unitName(currentField.key),
+        { a: fromSel, b: toSel });
     }
 
     function buildOffsetControls(controls, enabled) {
@@ -462,15 +496,15 @@ CP.builder = (function () {
       }
     }
 
-    addMode("every", "builder.mode.every");
+    addMode("every", "builder.mode.everyUnit");
     if ((currentField.key === "dom" || currentField.key === "dow") && dialect.allows("question")) {
       addMode("none", "builder.mode.none");
     }
     if (!wide) {
-      addMode("step", "builder.mode.cycle", buildStepControls);
-      addMode("range", "builder.mode.range", buildRangeControls);
-      addMode("specific", "builder.mode.values", function (controls, enabled) {
-        buildGrid(controls, enabled, state, currentField, dialect, token);
+      addMode("step", null, buildStepControls);
+      addMode("range", null, buildRangeControls);
+      addMode("specific", "builder.mode.specificUnit", function (controls, enabled) {
+        if (enabled) buildGrid(controls, enabled, state, currentField, dialect, token);
       });
     }
     if (currentField.key === "dom") {
@@ -523,7 +557,15 @@ CP.builder = (function () {
       input.value = tokens[index] || "*";
       input.spellcheck = false;
       input.setAttribute("aria-label", t(field.i18nKey));
-      input.addEventListener("click", function (event) { event.stopPropagation(); });
+      input.addEventListener("click", function (event) {
+        const source = event.currentTarget || input;
+        if (field.key !== activeKey) {
+          pendingFocus = {
+            key: field.key,
+            offset: typeof source.selectionStart === "number" ? source.selectionStart : 0
+          };
+        }
+      });
       input.addEventListener("keydown", function (event) {
         if (event.key === "Enter") input.blur();
       });
@@ -537,7 +579,7 @@ CP.builder = (function () {
       dot.className = "fdot fdot-" + field.key;
       dot.setAttribute("aria-hidden", "true");
       const text = document.createElement("span");
-      text.textContent = t(field.i18nKey);
+      text.textContent = t("field.long." + field.key);
       label.appendChild(dot);
       label.appendChild(text);
 
@@ -560,6 +602,19 @@ CP.builder = (function () {
       });
     }
     renderFocus(result, state);
+    if (pendingFocus) {
+      const focusCard = CP.app.$("card-" + pendingFocus.key);
+      const focusInput = focusCard && focusCard.querySelector
+        ? focusCard.querySelector(".field-card-input") : null;
+      if (focusInput && typeof focusInput.focus === "function") {
+        focusInput.focus();
+        const offset = Math.min(pendingFocus.offset, focusInput.value.length);
+        if (typeof focusInput.setSelectionRange === "function") {
+          focusInput.setSelectionRange(offset, offset);
+        }
+      }
+      pendingFocus = null;
+    }
   }
 
   function setActive(key) {

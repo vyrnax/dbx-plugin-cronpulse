@@ -49,7 +49,7 @@
 ## 5. 闸门清单（每次改动后依次跑通）
 
 1. `node --test` —— 单测与差分测试（自动发现 `tests/*.test.mjs`），测试用 `tests/_loader.mjs` 以 `node:vm` 直接跑发行用同一份字节。
-2. `python _domcheck.py` —— 十一项静态闸门：悬空属性访问、重复函数声明、关键 id、禁用 API、宿主桥接用法、i18n 双向覆盖、方言联动表、出处禁令、访问器契约、字典重复键、中文硬编码（字典与片段模板除外）。
+2. `python _domcheck.py` —— 十二项静态闸门：悬空属性访问、重复函数声明、关键 id、禁用 API、宿主桥接用法、i18n 双向覆盖、方言联动表、访问器契约、错误码→文案（引擎每个码都要有 msg. 键，补动态拼接键的静态盲区）、字典重复键、中文硬编码（字典与片段模板除外）、出处禁令。
 3. `dbx-plugin package . --target universal --output-dir dist` —— 官方打包，产物是未签名候选。
 4. `node _verify.mjs "dist/*.dbxp"` —— 解包一次报完所有结构、清单、权限、路径、版本与出处问题。
 5. `node _storecandidate.mjs --allow-unverified` —— 仅本地冒烟，产物不可提交商店。

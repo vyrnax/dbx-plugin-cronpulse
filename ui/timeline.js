@@ -9,13 +9,6 @@ CP.timeline = (function () {
       pad(wall.h) + ":" + pad(wall.mi) + ":" + pad(wall.s);
   }
 
-  function weekdayName(wall, lang) {
-    const day = new Date(Date.UTC(wall.y, wall.m - 1, wall.d)).getUTCDay();
-    const key = "desc.weekday." + day;
-    const dict = CP.i18n.dict[lang] || CP.i18n.dict.en;
-    return dict[key] || CP.i18n.dict.en[key] || "";
-  }
-
   function addRow(list, className, parts) {
     const row = document.createElement("li");
     row.className = className;
@@ -53,7 +46,6 @@ CP.timeline = (function () {
       else if (view.insertBefore) view.insertBefore(box, view.firstChild);
     }
     list.textContent = "";
-    const lang = (result && result.lang) || CP.i18n.locale();
     if (!result || !result.times || !result.times.times.length) {
       const key = result && (result.status === "error" || result.status === "empty")
         ? "timeline.empty" : "status.notPredictable";
@@ -69,8 +61,6 @@ CP.timeline = (function () {
     }
     rows.sort(function (a, b) { return a.instant - b.instant; });
 
-    let previous = null;
-    let nominal = null;
     for (const row of rows) {
       if (row.kind === "skipped") {
         addRow(list, "timeline-row timeline-skipped", [
@@ -80,38 +70,11 @@ CP.timeline = (function () {
         continue;
       }
       const item = row.item;
-      const flags = [];
-      if (item.status === "ambiguous") flags.push(CP.i18n.t("timeline.repeated"));
-      if (previous !== null) {
-        const gap = item.instant - previous;
-        if (nominal === null) nominal = gap;
-        else if (gap !== nominal) flags.push(CP.i18n.t("timeline.irregular"));
+      const parts = [{ text: formatWall(item.wall), className: "timeline-wall" }];
+      if (item.status === "ambiguous") {
+        parts.push({ text: CP.i18n.t("timeline.repeated"), className: "timeline-note" });
       }
-      previous = item.instant;
-      const zone = item.zone || state.tz;
-      let zoneLabel = "";
-      try {
-        zoneLabel = CP.cron.tz.abbreviation(item.instant, zone) + " " +
-          CP.cron.tz.formatOffset(item.offset);
-      } catch (_) {
-        zoneLabel = CP.cron.tz.formatOffset(item.offset);
-      }
-      addRow(list, "timeline-row", [
-        { text: formatWall(item.wall), className: "timeline-wall" },
-        { text: weekdayName(item.wall, lang), className: "timeline-note" },
-        { text: zoneLabel, className: "timeline-note" },
-        { text: flags.join(" · "), className: "timeline-flag" }
-      ]);
-    }
-    const ambiguous = (result.issues || []).find(function (issue) {
-      return issue.code === "DOW_BASE_AMBIGUOUS" && issue.alternativeFirst;
-    });
-    if (ambiguous) {
-      addRow(list, "timeline-row", [
-        { text: CP.i18n.t("msg.DOW_BASE_AMBIGUOUS", ambiguous.params), className: "timeline-note" },
-        { text: new Date(ambiguous.currentFirst).toISOString() + " / " +
-            new Date(ambiguous.alternativeFirst).toISOString(), className: "timeline-flag" }
-      ]);
+      addRow(list, "timeline-row", parts);
     }
   }
 

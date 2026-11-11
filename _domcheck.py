@@ -12,6 +12,7 @@
   ⑦ 方言联动表（字段卡数量与方言字段数一致）
   ⑧ 出处禁令扫描（封闭白名单）
   ⑨ 方言访问器契约（ui/ 内禁止裸方言字符串比较）
+  ⑩ 错误码→文案（引擎每个 code 都需 msg.<code>，动态拼接键的静态盲区）
 
 判据与 _verify.mjs 的「剥注释 + 禁用 API」规则保持一致，改一边必须改另一边。
 """
@@ -310,6 +311,38 @@ def scan_provenance(path: Path, text: str) -> None:
             fail(f"{where} 出现 owner/repo 形态标识 {token}")
 
 
+def check_error_codes(sources: list[tuple[Path, str]]) -> None:
+    """⑩ 错误码→文案：引擎发出的每个 code 都必须在两份字典有 msg.<code>。
+
+    错码文案 key 是动态拼接（msg. + code），静态的 i18n 引用扫描看不到；
+    新增码忘补文案会把字面 key 泄露到界面。此项补齐该盲区。
+    """
+    patterns = [
+        r'makeIssue\(\s*"([A-Z][A-Z0-9_]+)"',
+        r'code:\s*"([A-Z][A-Z0-9_]+)"',
+        r'error\s*=\s*"([A-Z][A-Z0-9_]+)"',
+        r'unsupported\s*=\s*"([A-Z][A-Z0-9_]+)"',
+    ]
+    codes: set[str] = set()
+    for path, source in sources:
+        rel = path.relative_to(BASE).as_posix()
+        if not rel.startswith("ui/cron/"):
+            continue
+        code_text = strip_js(source)
+        for pattern in patterns:
+            for match in re.finditer(pattern, code_text):
+                codes.add(match.group(1))
+    i18n_source = strip_js(read(UI / "i18n.js"))
+    zh = locale_keys(i18n_source, "zh-CN")
+    en = locale_keys(i18n_source, "en")
+    missing = sorted(
+        code for code in codes
+        if (zh is None or "msg." + code not in zh) or (en is None or "msg." + code not in en)
+    )
+    for code in missing:
+        fail(f"错误码 {code} 缺少 msg.{code} 文案键（会泄露字面 key 到界面）")
+    notes.append(f"错误码文案：引擎 {len(codes)} 个码均已有 msg. 键" if not missing else f"错误码文案：引擎 {len(codes)} 个码")
+
 def check_provenance() -> None:
     targets: list[Path] = []
     for folder in ["ui", "tests", "assets", ".github/workflows"]:
@@ -351,6 +384,7 @@ def main() -> int:
     check_i18n_duplicates(strip_js(read(UI / "i18n.js")))
     check_hardcoded_chinese(sources)
     check_dialect_contract(html, sources)
+    check_error_codes(sources)
     check_provenance()
 
     for note in notes:

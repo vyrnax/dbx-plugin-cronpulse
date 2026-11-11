@@ -62,9 +62,13 @@ CP.cron.bits = (function () {
       } else if (type === "value" || type === "names") {
         set(bits, item.canonical !== undefined ? item.canonical : item.value);
       } else if (type === "range" || type === "step") {
-        const from = item.canonicalFrom !== undefined ? item.canonicalFrom : item.from;
-        const to = item.canonicalTo !== undefined ? item.canonicalTo : item.to;
-        fill(bits, from, to, item.step || 1);
+        if (Array.isArray(item.canonicalValues)) {
+          for (const value of item.canonicalValues) set(bits, value);
+        } else {
+          const from = item.canonicalFrom !== undefined ? item.canonicalFrom : item.from;
+          const to = item.canonicalTo !== undefined ? item.canonicalTo : item.to;
+          fill(bits, from, to, item.step || 1);
+        }
         if (item.base === "*" && (!item.step || item.step === 1)) wildcard = true;
       } else if (type === "special") {
         specials.push(item);

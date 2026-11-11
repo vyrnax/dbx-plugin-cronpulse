@@ -4,9 +4,9 @@ CP.app = (function () {
 
   const DEBOUNCE_MS = 120;
   const DIALECTS = [
-    { name: "unix", label: "Unix (Linux Crontab)" },
-    { name: "spring", label: "Spring (@Scheduled)" },
-    { name: "quartz", label: "Quartz (Java)" }
+    { name: "unix", label: "Unix" },
+    { name: "spring", label: "Spring" },
+    { name: "quartz", label: "Quartz" }
   ];
   const ZONES = ["Local", "UTC", "Asia/Shanghai", "Asia/Tokyo", "Asia/Singapore",
     "America/New_York", "America/Chicago", "Europe/London", "Europe/Berlin", "__free__"];
@@ -34,6 +34,7 @@ CP.app = (function () {
   let timer = null;
   let lastResult = null;
   let tzLimited = false;
+  let toastTimer = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -68,8 +69,7 @@ CP.app = (function () {
       const names = CP.cron.dialect.list();
       if (names && names.length) {
         return names.map(function (name) {
-          const d = CP.cron.dialect.get(name);
-          return { name: name, label: (d && d.label) || name };
+          return { name: name, label: name.charAt(0).toUpperCase() + name.slice(1) };
         });
       }
     }
@@ -110,9 +110,14 @@ CP.app = (function () {
   }
 
   function showBanner() {
+    // 宿主不提供持久化能力且已尝试读写：给出一次性提示（此前恒 hidden，功能不可达）
     const banner = $("banner-no-storage");
-    if (!banner) return;
-    banner.hidden = true;
+    if (banner) {
+      const missing = !CP.bridge.hasStorage() && CP.bridge.storageWarned();
+      banner.hidden = !missing;
+      const label = $("banner-no-storage-text");
+      if (label) label.textContent = t("banner.noStorage");
+    }
     const intl = $("banner-intl");
     if (intl) {
       intl.hidden = !tzLimited;
@@ -152,7 +157,6 @@ CP.app = (function () {
       applyPreset: function (preset) {
         applyEntry(preset);
         CP.store.pushHistory({ expr: preset.expr, dialect: preset.dialect, tz: state.tz });
-        CP.store.render(state, storeHandlers());
       },
       loadEntry: function (entry) { applyEntry(entry); },
       toggleFavorite: function (entry) {
@@ -196,14 +200,21 @@ CP.app = (function () {
         });
       }
       if (converted.yearRemoved) showToast(t("toast.yearRemoved"));
+    } else if (converted && converted.code) {
+      // 不可无损转换时仍切方言、保留原表达式，但必须给原因，否则用户只看到凭空冒出的红字
+      showToast(t("msg." + converted.code));
     }
     savePrefs();
     recompute();
   }
 
-  function showToast(text, actionLabel, action) {
+  function showToast(text, actionLabel, action, options) {
     const toast = $("toast");
     if (!toast) return;
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+    if (toast.classList && typeof toast.classList.remove === "function") {
+      toast.classList.remove("toast-centered");
+    }
     toast.textContent = "";
     const span = document.createElement("span");
     span.textContent = text;
@@ -220,6 +231,15 @@ CP.app = (function () {
       toast.appendChild(btn);
     }
     toast.hidden = false;
+    if (options && options.centered && toast.classList && typeof toast.classList.add === "function") {
+      toast.classList.add("toast-centered");
+    }
+    if (options && options.autoHide) {
+      toastTimer = setTimeout(function () {
+        toast.hidden = true;
+        toastTimer = null;
+      }, options.autoHide);
+    }
   }
 
   function renderHint() {
@@ -228,6 +248,9 @@ CP.app = (function () {
     if (wrap) wrap.hidden = !spec.yearToggle;
     const card = $("card-year");
     if (card) card.hidden = !(spec.yearToggle && state.yearEnabled);
+    // 常驻红字：把当前方言的星期编号与日/周关系提示写进 dialect-hint（此前该元素从未被填充）
+    const hint = $("dialect-hint");
+    if (hint) hint.textContent = t(spec.hintKey);
   }
 
   function focusField(issue) {
@@ -266,7 +289,9 @@ CP.app = (function () {
   }
 
   function copyText(text) {
-    const finish = function (ok) { if (ok) showToast(t("common.copied")); };
+    const finish = function (ok) {
+      if (ok) showToast(t("common.copied"), null, null, { centered: true, autoHide: 2000 });
+    };
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       navigator.clipboard.writeText(text).then(function () { finish(true); },
         function () { finish(fallbackCopy(text)); });
@@ -285,6 +310,15 @@ CP.app = (function () {
     text.className = "summary-text";
     text.textContent = sentence;
     view.appendChild(text);
+    // 计划要求"显式说明日/周是并集还是交集"：仅当两侧都被具体限定，关系才真正生效，
+    // 单侧限定贴标签反而是噪音（dayRelation 由 describe 产出，已在两份字典内）。
+    const v = result && result.validation;
+    if (v && v.domConcrete && v.dowConcrete && result.description && result.description.dayRelation) {
+      const rel = document.createElement("span");
+      rel.className = "summary-relation";
+      rel.textContent = result.description.dayRelation;
+      view.appendChild(rel);
+    }
   }
 
   function bindActions() {
@@ -309,12 +343,10 @@ CP.app = (function () {
     const list = $("error-list");
     if (list) list.textContent = "";
     const status = (result && result.status) || (String(state.expr).trim() ? "valid" : "empty");
-    const issues = ((result && result.issues) || []).filter(function (issue) {
-      return issue.code !== "DOW_BASE_AMBIGUOUS";
-    });
+    const issues = (result && result.issues) || [];
     const displayStatus = status === "warning" && !issues.length ? "valid" : status;
     if (bar) {
-      bar.hidden = displayStatus !== "warning" && displayStatus !== "error";
+      bar.hidden = displayStatus !== "warning" && displayStatus !== "error" && !issues.length;
       bar.setAttribute("data-state", displayStatus);
     }
     if (text) {
@@ -336,10 +368,10 @@ CP.app = (function () {
 
   function renderViews(result) {
     const timeline = $("view-timeline");
-    if (timeline) timeline.hidden = state.tab === "snippets";
+    if (timeline) timeline.hidden = state.tab === "snippets" || state.tab === "deploy";
     const snippets = $("view-snippets");
-    if (snippets) snippets.hidden = state.tab !== "snippets";
-    ["timeline", "snippets"].forEach(function (name) {
+    if (snippets) snippets.hidden = state.tab !== "snippets" && state.tab !== "deploy";
+    ["timeline", "snippets", "deploy"].forEach(function (name) {
       const tab = $("tab-" + name);
       if (tab) tab.setAttribute("aria-selected", name === state.tab ? "true" : "false");
     });
@@ -350,15 +382,65 @@ CP.app = (function () {
     if (CP.convert && typeof CP.convert.renderCompare === "function") CP.convert.renderCompare($("compare-bar"), result, state);
   }
 
+  // 星期年份勾选框与表达式段数只保留一个真源：段数。
+  // 手输 7 段表达式时勾选框自动亮起，取消勾选则真剪掉年段，不再出现
+  // “勾选框 false 但表达式已有 7 段”的双真源漂移。
+  function dialectSpec() {
+    return CP.cron && CP.cron.dialect && typeof CP.cron.dialect.get === "function"
+      ? CP.cron.dialect.get(state.dialect) : null;
+  }
+
+  function syncYearFlag() {
+    const spec = dialectSpec();
+    const required = spec ? spec.getFields().filter(function (f) { return !f.optional; }).length : 0;
+    const tokens = String(state.expr || "").trim().split(/\s+/).filter(Boolean);
+    state.yearEnabled = !!(spec && spec.allows("year") && tokens.length > required);
+    const year = $("chk-year");
+    if (year) year.checked = state.yearEnabled;
+  }
+
+  // 计划要求的“分 时 日 月 周 [年]”分字段徽标行：每段一个可点徽标，
+  // 含错误的段标红，点击跳到对应字段卡（expr-badges 此前是无人填充的死元素）。
+  function renderBadges() {
+    const wrap = $("expr-badges");
+    if (!wrap) return;
+    wrap.textContent = "";
+    const spec = dialectSpec();
+    const tokens = String(state.expr || "").trim().split(/\s+/).filter(Boolean);
+    if (!spec || !tokens.length) { wrap.hidden = true; return; }
+    const fields = spec.getFields();
+    const errorAt = Object.create(null);
+    ((lastResult && lastResult.issues) || []).forEach(function (issue) {
+      if (issue.severity === "error" && issue.fieldIndex >= 0) errorAt[issue.fieldIndex] = true;
+    });
+    wrap.hidden = false;
+    tokens.forEach(function (token, index) {
+      const field = fields[index];
+      const badge = document.createElement("button");
+      badge.type = "button";
+      badge.className = "badge" + (errorAt[index] ? " error" : "");
+      badge.textContent = (field ? t(field.i18nKey) : "?") + " " + token;
+      if (field && CP.builder && typeof CP.builder.setActive === "function") {
+        badge.addEventListener("click", function () { CP.builder.setActive(field.key); });
+      }
+      wrap.appendChild(badge);
+    });
+  }
+
   function recompute() {
     lastResult = null;
+    syncYearFlag();
     if (CP.engine && typeof CP.engine.evaluate === "function") {
       lastResult = CP.engine.evaluate(state);
     }
     renderHint();
+    renderBadges();
     renderStatus(lastResult);
     renderViews(lastResult);
     if (CP.timeline && typeof CP.timeline.drawCanvas === "function") CP.timeline.drawCanvas(lastResult, state);
+    // 收藏星标与预设高亮必须随表达式编辑刷新：此前只在点预设/切语言时重绘，
+    // 直接改输入框后 ★/☆ 与 aria-pressed 全部停在旧值。render 幂等，重复调用无副作用。
+    if (CP.store && typeof CP.store.render === "function") CP.store.render(state, storeHandlers());
     showBanner();
     return lastResult;
   }
@@ -415,7 +497,7 @@ CP.app = (function () {
         recompute();
       });
     }
-    ["describe", "timeline", "snippets"].forEach(function (name) {
+    ["describe", "timeline", "snippets", "deploy"].forEach(function (name) {
       const tab = $("tab-" + name);
       if (tab) {
         tab.addEventListener("click", function () {
@@ -427,8 +509,35 @@ CP.app = (function () {
     const year = $("chk-year");
     if (year) {
       year.addEventListener("change", function () {
-        state.yearEnabled = !!year.checked;
+        const spec = CP.cron.dialect.get(state.dialect);
+        if (!spec || !spec.allows("year")) { recompute(); return; }
+        const required = spec.getFields().filter(function (f) { return !f.optional; }).length;
+        const tokens = String(state.expr || "").trim().split(/\s+/).filter(Boolean);
+        if (year.checked) {
+          if (tokens.length === required) tokens.push("*");
+        } else if (tokens.length > required) {
+          tokens.length = required;
+        }
+        state.expr = tokens.join(" ");
+        const input = $("expr-input");
+        if (input) input.value = state.expr;
         recompute();
+      });
+    }
+    const exprRow = document.querySelector ? document.querySelector(".expr-row") : null;
+    if (exprRow && input) {
+      exprRow.addEventListener("click", function (event) {
+        if (event.target !== exprRow) return;
+        const box = input.getBoundingClientRect ? input.getBoundingClientRect() : null;
+        const size = String(input.value || "").length;
+        let offset = size;
+        if (box && box.width > 28) {
+          if (event.clientX <= box.left + 14) offset = 0;
+          else if (event.clientX >= box.right - 14) offset = size;
+          else offset = Math.round((event.clientX - box.left - 14) / (box.width - 28) * size);
+        }
+        if (input.focus) input.focus();
+        if (input.setSelectionRange) input.setSelectionRange(offset, offset);
       });
     }
   }
@@ -443,7 +552,6 @@ CP.app = (function () {
     const free = $("tz-free");
     if (free) free.hidden = ZONES.indexOf(state.tz) >= 0;
     recompute();
-    if (CP.store && typeof CP.store.render === "function") CP.store.render(state, storeHandlers());
   }
 
   async function init() {
@@ -462,6 +570,13 @@ CP.app = (function () {
     }
     bind();
     bindActions();
+    // 展开顶栏：收藏（星标）与历史区此前始终 hidden，store.render 已填充但用户看不到
+    const topbar = $("topbar");
+    if (topbar) topbar.hidden = false;
+    const favorites = $("favorites-area");
+    if (favorites) favorites.hidden = false;
+    const history = $("history-area");
+    if (history) history.hidden = false;
     CP.bridge.onEnv(function () { applyLocale(); });
     applyLocale();
   }

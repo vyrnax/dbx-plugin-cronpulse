@@ -153,14 +153,26 @@ CP.cron.validate = (function () {
     }
 
     if (dowAst) {
+      // 星期数字是两套编号唯一会分歧的地方：公共区间内同一数字在本方言与
+      // 另一基准下代表不同星期。直接算出两个星期名交给文案，用户一眼看懂差异。
+      // 纯 0 / 7（都指周日）与含字母的名称写法不产生歧义，跳过。
+      // 不写方言字面量（触发 ⑨ 访问器契约闸门）：方向由 dowRange().min 推出，
+      // quartz 基准下另一读法多一天，unix 基准下少一天；0 在 quartz 非法，不告警。
+      const shift = dialect.dowRange().min === 1 ? 1 : -1;
       for (const item of numericItems(dowAst)) {
-        const low = dialect.dowRange().min === 1 ? 0 : 1;
-        const values = item.type === "value" ? [item.value]
-          : [item.from, item.canonicalFrom, item.value];
-        if (values.some(function (value) { return Number.isFinite(value) && value >= low && value <= 6; })) {
-          issues.push(makeIssue("DOW_BASE_AMBIGUOUS", dowIndex, "field.dow", item, "warning", { value: item.raw }));
-          break;
-        }
+        if (item.type !== "value") continue;
+        if (!Number.isFinite(item.value) || item.value < 1) continue;
+        const current = CP.cron.dialect.toCanonical(item.value, dialect.dowBase());
+        const other = ((current + shift) % 7 + 7) % 7;
+        if (current === other) continue;
+        issues.push(makeIssue("DOW_BASE_AMBIGUOUS", dowIndex, "field.dow", item, "info", {
+          value: item.raw,
+          hereIdx: current,
+          thereIdx: other,
+          here: CP.cron.dialect.dowNames[current],
+          there: CP.cron.dialect.dowNames[other]
+        }));
+        break;
       }
     }
 
@@ -189,7 +201,8 @@ CP.cron.validate = (function () {
     }
 
     const hasError = issues.some(function (item) { return item.severity === "error"; });
-    const status = hasError ? "error" : issues.length ? "warning" : "valid";
+    const hasWarning = issues.some(function (item) { return item.severity === "warning"; });
+    const status = hasError ? "error" : hasWarning ? "warning" : "valid";
     return {
       status: status,
       issues: issues,

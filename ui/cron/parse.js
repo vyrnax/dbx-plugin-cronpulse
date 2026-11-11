@@ -25,9 +25,18 @@ CP.cron.parse = (function () {
         result.suggestion = short;
         return result;
       }
+      const index = table.indexOf(short);
+      // 名称与方言无关：canonical 恒为该名称的通用序号（月份 1-12，星期 0-6=周日…周六）。
+      // value 则是"当前方言写法下的数字"——星期按方言基准换算，Quartz 的 SUN 记 1、Unix 的 SUN 记 0，
+      // 否则名称会拿去和方言数字范围比对而误判越界（Quartz 里 SUN 曾被判 OUT_OF_RANGE）。
       result.name = short;
-      result.value = table.indexOf(short) + (field.key === "month" ? 1 : 0);
-      result.canonical = result.value;
+      if (field.key === "month") {
+        result.canonical = index + 1;
+        result.value = index + 1;
+      } else {
+        result.canonical = index;
+        result.value = CP.cron.dialect.fromCanonical(index, dialect.dowBase(), false);
+      }
     } else {
       result.error = "SYNTAX_UNEXPECTED_CHAR";
       return result;
@@ -37,10 +46,9 @@ CP.cron.parse = (function () {
       result.error = "OUT_OF_RANGE";
       return result;
     }
-    if (field.key === "dow") {
-      result.canonical = result.name !== null
-        ? result.value
-        : CP.cron.dialect.toCanonical(result.value, dialect.dowBase());
+    if (field.key === "dow" && result.name === null) {
+      // 纯数字才按方言基准归一；名称分支已设好 canonical，勿覆盖
+      result.canonical = CP.cron.dialect.toCanonical(result.value, dialect.dowBase());
     }
     return result;
   }
@@ -145,6 +153,20 @@ CP.cron.parse = (function () {
     });
   }
 
+  // dow 的区间与步长写法必须在原始数字域推进后，再逐个归一到 canonical：
+  // canonical(0) 与 canonical(7) 同为周日，若直接对 canonical 端点 fill 会丢信息，
+  // 导致 1-7 塌空、0-7 只剩周日、5-7 反被当成全域等经典 crontab 陷阱。
+  function expandDow(item, field, dialect) {
+    const from = Number.isFinite(item.from) ? item.from : field.min;
+    const to = Number.isFinite(item.to) ? item.to : field.max;
+    const step = item.step > 0 ? item.step : 1;
+    const values = [];
+    for (let value = from; value <= to; value += step) {
+      values.push(CP.cron.dialect.toCanonical(value, dialect.dowBase()));
+    }
+    return values;
+  }
+
   function parseField(token, field, dialect, offset) {
     const ast = {
       key: field.key, raw: token, kind: "list", items: [],
@@ -166,6 +188,9 @@ CP.cron.parse = (function () {
       const partOffset = offset + token.indexOf(part, cursor);
       cursor = token.indexOf(part, cursor) + part.length;
       const item = parseItem(part, field, dialect, partOffset);
+      if (field.key === "dow" && (item.type === "range" || item.type === "step")) {
+        item.canonicalValues = expandDow(item, field, dialect);
+      }
       ast.items.push(item);
       if (item.special && field.key === "dom" && ["L", "LW", "Lminus", "W"].indexOf(item.special) >= 0) {
         ast.domSpecial = { kind: item.special, offset: item.offsetValue || 0, day: item.day || 0,

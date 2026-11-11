@@ -91,7 +91,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .tz-free.invalid { border-color: var(--cp-danger); }
 
 .badges { display: flex; flex-wrap: wrap; gap: 6px; }
-#expr-badges { display: none; }
+#expr-badges[hidden] { display: none; }
 .badge {
   font-family: var(--cp-mono);
   font-size: 0.78rem;
@@ -118,7 +118,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 
 .banner { border-color: var(--cp-warning); color: var(--cp-warning); }
 
-.main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr); gap: 12px; align-items: stretch; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; align-items: stretch; }
 @media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
 .side-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .side-col .results { flex: 1; }
@@ -149,6 +149,7 @@ h2, h3 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 650; }
 }
 .summary-bar[hidden] { display: none; }
 .summary-text { flex: 1; min-width: 0; word-break: break-all; }
+.summary-relation { flex-shrink: 0; font-size: 0.78rem; color: var(--cp-warning); border: 1px solid var(--cp-warning); border-radius: var(--cp-radius); padding: 1px 7px; }
 
 .field-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; margin-top: 10px; }
 .field-card {
@@ -307,8 +308,7 @@ h2, h3 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 650; }
 
 .presets-title { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 0.95rem; font-weight: 650; }
 .presets-icon { color: var(--cp-primary); flex-shrink: 0; }
-.preset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-@media (max-width: 900px) { .preset-grid { grid-template-columns: repeat(2, 1fr); } }
+.preset-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .preset-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 10px; }
 .preset-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .preset-emoji { font-size: 14px; line-height: 1; }
@@ -340,3 +340,102 @@ h2, h3 { margin: 0 0 10px; font-size: 0.95rem; font-weight: 650; }
   font-size: 0.85rem;
 }
 .toast[hidden] { display: none; }
+
+/* Cursor interaction: the entire field card is the text input hit area. */
+.field-card {
+  min-height: 70px;
+  border: 0;
+  justify-content: flex-end;
+  box-shadow: inset 0 0 0 1px var(--cp-border);
+}
+.field-card::before { z-index: 2; pointer-events: none; }
+.field-card:hover { box-shadow: inset 0 0 0 1px var(--card-c, var(--cp-primary)); }
+.field-card.active { box-shadow: inset 0 0 0 1px var(--card-c, var(--cp-primary)); }
+.field-card.invalid { box-shadow: inset 0 0 0 1px var(--cp-danger); }
+.field-card:focus-within { box-shadow: inset 0 0 0 1px var(--cp-primary); }
+.field-card .field-card-input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 8px 4px 30px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  color: inherit;
+  cursor: text;
+}
+.field-card .field-card-input:hover,
+.field-card .field-card-input:focus,
+.field-card .field-card-input:focus-visible { border: 0; background: transparent; box-shadow: none; outline: none; }
+.field-card-label { position: relative; z-index: 0; pointer-events: none; }
+
+/* Inline mode rows: radio followed by a sentence with embedded selects. */
+.mode-row.mode-row-inline { grid-template-columns: auto 1fr; }
+.mode-row.mode-row-inline .mode-label { align-self: center; padding-top: 0; }
+.mode-row.mode-row-inline .mode-controls { color: var(--cp-fg); white-space: nowrap; }
+
+/* Snippet tabs: switch one code block by language or deployment platform. */
+.snippet-group-label { display: block; margin: 8px 0 6px; color: var(--cp-muted); font-size: 0.78rem; }
+.snippet-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.snippet-tabs .chip[data-supported="no"] { color: var(--cp-muted); }
+.snippet-tabs .chip[aria-pressed="true"] { border-color: var(--cp-primary); background: var(--cp-bg); color: var(--cp-primary); font-weight: 600; }
+.snippet-code-host { margin-top: 8px; }
+.snippet-code { margin: 0; padding: 8px 10px; max-height: 240px; overflow: auto; border: 1px solid var(--cp-border); border-radius: var(--cp-radius); background: var(--cp-bg); font-family: var(--cp-mono); font-size: 0.78rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Timeline toolbar (count, window chips) and canvas are intentionally hidden. */
+#view-timeline .timeline-toolbar { display: none; }
+#timeline-canvas { display: none; }
+
+/* Compatibility matrix is intentionally hidden. */
+#compare-bar { display: none; }
+
+/* Action buttons: leading icons use the host text color via masks. */
+#btn-copy, #btn-reset { display: inline-flex; align-items: center; gap: 6px; }
+#btn-copy::before, #btn-reset::before {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+#btn-copy::before {
+  -webkit-mask-image: url("icons/copy.svg");
+  mask-image: url("icons/copy.svg");
+}
+#btn-reset::before {
+  -webkit-mask-image: url("icons/reset.svg");
+  mask-image: url("icons/reset.svg");
+}
+
+/* Copy action uses the host primary color. */
+#btn-copy {
+  background: var(--cp-primary);
+  border-color: var(--cp-primary);
+  color: var(--cp-primary-fg);
+}
+#btn-copy:hover { filter: brightness(1.08); }
+#btn-copy:active { filter: brightness(0.94); }
+#btn-copy:focus-visible { outline-color: var(--cp-primary-fg); }
+
+/* Copied notice is centered at the top. */
+.toast.toast-centered {
+  top: 18px;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Three result tabs share the narrow side column. */
+.tabs .tab { flex: 1 1 0; min-width: 0; padding-left: 6px; padding-right: 6px; }

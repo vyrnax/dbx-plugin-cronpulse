@@ -44,7 +44,8 @@ CP.cron.dialect = (function () {
   const DOM = { key: "dom", i18nKey: "field.dom", min: 1, max: 31, stepMin: 1, stepMax: 31 };
   const MONTH = { key: "month", i18nKey: "field.month", min: 1, max: 12, stepMin: 1, stepMax: 12 };
   const DOW = { key: "dow", i18nKey: "field.dow", min: 0, max: 7, stepMin: 1, stepMax: 7 };
-  const YEAR = { key: "year", i18nKey: "field.year", min: 1970, max: 2199, stepMin: 1, stepMax: 229, optional: true };
+  // 年份上限取自官方允许值（1970-2099），不能放到 2199
+  const YEAR = { key: "year", i18nKey: "field.year", min: 1970, max: 2099, stepMin: 1, stepMax: 129, optional: true };
   const UNIX_FIELDS = [MIN, HOUR, DOM, MONTH, DOW];
   const SIX_FIELDS = [SEC, MIN, HOUR, DOM, MONTH, DOW];
 
@@ -162,7 +163,7 @@ CP.cron.dialect = (function () {
   register({
     name: "robfig", label: "robfig compatibility", selectable: false, hintKey: "hint.unixDow",
     dowBase: "unix", dayMatch: "union", macroSet: "unix",
-    features: { question: true, macros: true, names: false },
+    features: { question: true, macros: true, names: true },
     fields: UNIX_FIELDS
   });
 

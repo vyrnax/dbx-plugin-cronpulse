@@ -1,26 +1,20 @@
 CP.engine = (function () {
   "use strict";
 
-  function withMessage(issue) {
-    const copy = Object.assign({}, issue);
-    copy.message = CP.i18n.t(issue.messageKey, issue.params);
-    return copy;
+  function localizeWeekday(params) {
+    if (!params || params.hereIdx === undefined || params.thereIdx === undefined) return params;
+    // 编号对比要用当前语言的工作日名（THU/FRI 在中文语境不可读），validate 只提供索引
+    return Object.assign({}, params, {
+      here: CP.i18n.t("desc.weekday." + params.hereIdx),
+      there: CP.i18n.t("desc.weekday." + params.thereIdx)
+    });
   }
 
-  function alternativeFirstTime(ast, dialect, state) {
-    const targetName = CP.cron.dialect.list().find(function (name) {
-      const candidate = CP.cron.dialect.get(name);
-      return candidate && candidate.dowBase() !== dialect.dowBase();
-    });
-    const target = targetName ? CP.cron.dialect.get(targetName) : null;
-    if (!target) return null;
-    const converted = CP.cron.convert.convert(ast, dialect, targetName);
-    if (!converted.ok) return null;
-    const reparsed = CP.cron.parse.parse(converted.expression, target);
-    const result = CP.cron.next.next(reparsed, target, {
-      tz: state.tz, count: 1, dstMissing: state.dstMissing
-    });
-    return result.times.length ? result.times[0].instant : null;
+  function withMessage(issue) {
+    const copy = Object.assign({}, issue);
+    copy.params = localizeWeekday(issue.params);
+    copy.message = CP.i18n.t(issue.messageKey, copy.params);
+    return copy;
   }
 
   function evaluate(state) {
@@ -54,14 +48,10 @@ CP.engine = (function () {
           }));
         }
       }
-      const ambiguous = issues.find(function (item) { return item.code === "DOW_BASE_AMBIGUOUS"; });
-      if (ambiguous && times && times.times.length) {
-        ambiguous.alternativeFirst = alternativeFirstTime(ast, dialect, state);
-        ambiguous.currentFirst = times.times[0].instant;
-      }
     }
 
-    const status = validation.status === "valid" && issues.length ? "warning" : validation.status;
+    const escalated = issues.some(function (item) { return item.severity === "warning"; });
+    const status = validation.status === "valid" && escalated ? "warning" : validation.status;
     return {
       status: status, issues: issues, ast: ast, dialect: dialect,
       description: description, times: times, validation: validation, lang: lang

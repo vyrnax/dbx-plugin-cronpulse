@@ -54,9 +54,13 @@ CP.cron.describe = (function () {
         return L("every", { field: L("fieldLabel", { name: CP.i18n.dict[lang]["field." + field.key] }, lang) }, lang);
       }
       if (field.key === "dow") {
+        // 星期名只能按 canonical（0-6，0=周日）查；直接用方言原生数字会偏一天，
+        // 且 to=7 会查到不存在的 weekday.7 键（直接把键名泄露到界面）。
+        const fromIdx = item.canonicalFrom !== undefined ? item.canonicalFrom : item.from;
+        const toIdx = item.canonicalTo !== undefined ? item.canonicalTo : item.to;
         return L("dowRange", {
-          from: L("weekday." + item.from, null, lang),
-          to: L("weekday." + item.to, null, lang)
+          from: L("weekday." + fromIdx, null, lang),
+          to: L("weekday." + toIdx, null, lang)
         }, lang);
       }
       if (field.key === "month") {
