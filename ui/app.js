@@ -110,14 +110,6 @@ CP.app = (function () {
   }
 
   function showBanner() {
-    // 宿主不提供持久化能力且已尝试读写：给出一次性提示（此前恒 hidden，功能不可达）
-    const banner = $("banner-no-storage");
-    if (banner) {
-      const missing = !CP.bridge.hasStorage() && CP.bridge.storageWarned();
-      banner.hidden = !missing;
-      const label = $("banner-no-storage-text");
-      if (label) label.textContent = t("banner.noStorage");
-    }
     const intl = $("banner-intl");
     if (intl) {
       intl.hidden = !tzLimited;
@@ -310,15 +302,6 @@ CP.app = (function () {
     text.className = "summary-text";
     text.textContent = sentence;
     view.appendChild(text);
-    // 计划要求"显式说明日/周是并集还是交集"：仅当两侧都被具体限定，关系才真正生效，
-    // 单侧限定贴标签反而是噪音（dayRelation 由 describe 产出，已在两份字典内）。
-    const v = result && result.validation;
-    if (v && v.domConcrete && v.dowConcrete && result.description && result.description.dayRelation) {
-      const rel = document.createElement("span");
-      rel.className = "summary-relation";
-      rel.textContent = result.description.dayRelation;
-      view.appendChild(rel);
-    }
   }
 
   function bindActions() {
@@ -345,10 +328,7 @@ CP.app = (function () {
     const status = (result && result.status) || (String(state.expr).trim() ? "valid" : "empty");
     const issues = (result && result.issues) || [];
     const displayStatus = status === "warning" && !issues.length ? "valid" : status;
-    if (bar) {
-      bar.hidden = displayStatus !== "warning" && displayStatus !== "error" && !issues.length;
-      bar.setAttribute("data-state", displayStatus);
-    }
+    if (bar) bar.setAttribute("data-state", displayStatus);
     if (text) {
       text.textContent = displayStatus === "empty" ? t("status.empty")
         : displayStatus === "error" ? t("status.error")
@@ -399,34 +379,6 @@ CP.app = (function () {
     if (year) year.checked = state.yearEnabled;
   }
 
-  // 计划要求的“分 时 日 月 周 [年]”分字段徽标行：每段一个可点徽标，
-  // 含错误的段标红，点击跳到对应字段卡（expr-badges 此前是无人填充的死元素）。
-  function renderBadges() {
-    const wrap = $("expr-badges");
-    if (!wrap) return;
-    wrap.textContent = "";
-    const spec = dialectSpec();
-    const tokens = String(state.expr || "").trim().split(/\s+/).filter(Boolean);
-    if (!spec || !tokens.length) { wrap.hidden = true; return; }
-    const fields = spec.getFields();
-    const errorAt = Object.create(null);
-    ((lastResult && lastResult.issues) || []).forEach(function (issue) {
-      if (issue.severity === "error" && issue.fieldIndex >= 0) errorAt[issue.fieldIndex] = true;
-    });
-    wrap.hidden = false;
-    tokens.forEach(function (token, index) {
-      const field = fields[index];
-      const badge = document.createElement("button");
-      badge.type = "button";
-      badge.className = "badge" + (errorAt[index] ? " error" : "");
-      badge.textContent = (field ? t(field.i18nKey) : "?") + " " + token;
-      if (field && CP.builder && typeof CP.builder.setActive === "function") {
-        badge.addEventListener("click", function () { CP.builder.setActive(field.key); });
-      }
-      wrap.appendChild(badge);
-    });
-  }
-
   function recompute() {
     lastResult = null;
     syncYearFlag();
@@ -434,7 +386,6 @@ CP.app = (function () {
       lastResult = CP.engine.evaluate(state);
     }
     renderHint();
-    renderBadges();
     renderStatus(lastResult);
     renderViews(lastResult);
     if (CP.timeline && typeof CP.timeline.drawCanvas === "function") CP.timeline.drawCanvas(lastResult, state);
@@ -570,13 +521,6 @@ CP.app = (function () {
     }
     bind();
     bindActions();
-    // 展开顶栏：收藏（星标）与历史区此前始终 hidden，store.render 已填充但用户看不到
-    const topbar = $("topbar");
-    if (topbar) topbar.hidden = false;
-    const favorites = $("favorites-area");
-    if (favorites) favorites.hidden = false;
-    const history = $("history-area");
-    if (history) history.hidden = false;
     CP.bridge.onEnv(function () { applyLocale(); });
     applyLocale();
   }

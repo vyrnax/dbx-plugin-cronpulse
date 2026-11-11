@@ -84,7 +84,7 @@ test('HTML 与关键资源齐备', () => {
   for (const id of ['expr-input', 'sel-dialect', 'sel-timezone', 'sel-count', 'sel-dst',
     'chk-year', 'card-sec', 'card-min', 'card-hour', 'card-dom', 'card-month',
     'card-dow', 'card-year', 'error-list', 'tab-describe', 'tab-timeline',
-    'tab-snippets', 'timeline-canvas', 'preset-area', 'favorites-area', 'history-area']) {
+    'tab-snippets', 'timeline-canvas', 'preset-area', 'summary-row', 'summary-label']) {
     assert.ok(html.includes(`id="${id}"`), `缺 #${id}`);
   }
   assert.equal(/<script[^>]+type="module"/.test(html), false);

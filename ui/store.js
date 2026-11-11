@@ -93,15 +93,6 @@ CP.store = (function () {
     return persist("history");
   }
 
-  function chip(text, handler) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "chip";
-    button.textContent = text;
-    if (handler) button.addEventListener("click", handler);
-    return button;
-  }
-
   function presetChip(preset, active, handler) {
     const button = document.createElement("button");
     button.type = "button";
@@ -127,49 +118,6 @@ CP.store = (function () {
     return button;
   }
 
-  function entryButton(entry, label, handler) {
-    return chip(label + " · " + entry.expr, function () { handler(entry); });
-  }
-
-  function cronCode(expr) {
-    const code = document.createElement("code");
-    code.className = "preset-cron";
-    code.textContent = expr || "";
-    return code;
-  }
-
-  function favoriteEntryChip(entry, handler) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "preset-chip";
-    button.setAttribute("aria-pressed", "false");
-    const top = document.createElement("span");
-    top.className = "preset-top";
-    const label = document.createElement("span");
-    label.className = "preset-label";
-    label.textContent = entry.dialect;
-    top.appendChild(label);
-    button.appendChild(top);
-    button.appendChild(cronCode(entry.expr));
-    if (handler) button.addEventListener("click", handler);
-    return button;
-  }
-
-  function renderList(el, entries, emptyKey, handler) {
-    if (!el) return;
-    el.textContent = "";
-    if (!entries.length) {
-      const empty = document.createElement("span");
-      empty.className = "timeline-note";
-      empty.textContent = CP.i18n.t(emptyKey);
-      el.appendChild(empty);
-      return;
-    }
-    for (const entry of entries) {
-      el.appendChild(entryButton(entry, entry.dialect, handler));
-    }
-  }
-
   function render(state, handlers) {
     const callbacks = handlers || {};
     const presetArea = CP.app.$("preset-area");
@@ -182,38 +130,6 @@ CP.store = (function () {
         }));
       }
     }
-    const favoriteArea = CP.app.$("favorites-area");
-    if (favoriteArea) {
-      const current = { expr: state.expr, dialect: state.dialect, tz: state.tz };
-      favoriteArea.textContent = "";
-      const saved = isFavorite(current);
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.className = "preset-chip";
-      toggle.setAttribute("aria-pressed", saved ? "true" : "false");
-      const top = document.createElement("span");
-      top.className = "preset-top";
-      const star = document.createElement("span");
-      star.className = "preset-emoji";
-      star.setAttribute("aria-hidden", "true");
-      star.textContent = saved ? "★" : "☆";
-      const label = document.createElement("span");
-      label.className = "preset-label";
-      label.textContent = CP.i18n.t(saved ? "common.remove" : "common.save");
-      top.appendChild(star);
-      top.appendChild(label);
-      toggle.appendChild(top);
-      toggle.appendChild(cronCode(current.expr));
-      toggle.addEventListener("click", function () {
-        if (callbacks.toggleFavorite) callbacks.toggleFavorite(current);
-      });
-      favoriteArea.appendChild(toggle);
-      for (const entry of memory.favorites) {
-        favoriteArea.appendChild(favoriteEntryChip(entry, callbacks.loadEntry || function () {}));
-      }
-    }
-    renderList(CP.app.$("history-area"), memory.history, "history.empty",
-      callbacks.loadEntry || function () {});
   }
 
   return {

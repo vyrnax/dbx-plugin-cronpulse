@@ -37,14 +37,14 @@ DIFF_PACKAGES = ["cronstrue", "cron-parser", "croner"]
 DIALECT_NAMES = ["unix", "spring", "quartz", "robfig", "nodecron"]
 
 CRITICAL_IDS = [
-    "app", "topbar", "main", "statusbar", "toast", "banner-no-storage",
-    "expr-input", "expr-badges", "dialect-hint", "sel-dialect", "sel-timezone",
+    "app", "main", "statusbar", "toast",
+    "expr-input", "summary-row", "summary-label", "dialect-hint", "sel-dialect", "sel-timezone",
     "sel-count", "sel-dst", "chk-year", "year-toggle-wrap", "tz-free",
     "status-dot", "status-text", "error-list", "builder", "field-cards",
     "card-sec", "card-min", "card-hour", "card-dom", "card-month", "card-dow", "card-year",
     "compare-bar", "tabs", "tab-describe", "tab-timeline", "tab-snippets",
     "view-describe", "view-timeline", "view-snippets", "timeline-list", "timeline-canvas",
-    "preset-area", "favorites-area", "history-area",
+    "preset-area",
 ]
 
 problems: list[str] = []

@@ -8,22 +8,6 @@
 </head>
 <body>
 <div id="app" class="app">
-  <header id="topbar" class="topbar" hidden>
-    <div id="expr-badges" class="badges" aria-live="polite" hidden></div>
-    <label class="control"><span data-i18n="dst.label">缺失时刻</span><select id="sel-dst"></select></label>
-    <div id="favorites-area" class="favorites-area" hidden></div>
-    <div id="history-area" class="chips" hidden></div>
-  </header>
-
-  <section id="statusbar" class="statusbar" aria-live="polite">
-    <span id="status-dot" class="status-dot"></span>
-    <span id="status-text" class="status-text"></span>
-    <ul id="error-list" class="error-list"></ul>
-  </section>
-
-  <div id="banner-no-storage" class="banner" hidden>
-    <span id="banner-no-storage-text"></span>
-  </div>
   <div id="banner-intl" class="banner" data-i18n="banner.intlMissing" hidden></div>
 
   <main id="main" class="main">
@@ -35,6 +19,7 @@
           <label class="control"><span data-i18n="timezone.label">时区</span><select id="sel-timezone"></select></label>
           <input id="tz-free" class="tz-free" type="text" spellcheck="false" hidden
                  data-i18n-placeholder="timezone.freePlaceholder" placeholder="Area/City">
+          <label class="control"><span data-i18n="dst.label">缺失时刻</span><select id="sel-dst"></select></label>
           <label id="year-toggle-wrap" class="year-toggle" hidden>
             <input type="checkbox" id="chk-year">
             <span data-i18n="builder.year">指定年份 (Year)</span>
@@ -57,7 +42,15 @@
         <button id="btn-copy" type="button" data-i18n="common.copy">复制</button>
         <button id="btn-reset" type="button" data-i18n="builder.reset">重置</button>
       </div>
-      <div id="view-describe" class="summary-bar" role="status"></div>
+      <div id="summary-row" class="summary-row">
+        <span id="summary-label" class="summary-label" data-i18n="describe.label">描述</span>
+        <div id="view-describe" class="summary-body" role="status"></div>
+        <section id="statusbar" class="statusbar" aria-live="polite">
+          <span id="status-dot" class="status-dot"></span>
+          <span id="status-text" class="status-text"></span>
+        </section>
+      </div>
+      <ul id="error-list" class="error-list"></ul>
       <div id="focus-editor" class="focus-editor"></div>
       <div id="dialect-hint" class="dialect-hint"></div>
     </section>

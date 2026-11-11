@@ -304,29 +304,6 @@ CP.builder = (function () {
     host.hidden = false;
     host.textContent = "";
 
-    const tabs = document.createElement("div");
-    tabs.className = "focus-tabs";
-    tabs.setAttribute("role", "tablist");
-    for (const item of fields) {
-      if (item.optional && !(state.yearEnabled && dialect.allows("year"))) continue;
-      const tab = document.createElement("button");
-      tab.type = "button";
-      tab.className = "focus-tab fc-" + item.key;
-      tab.setAttribute("role", "tab");
-      tab.setAttribute("aria-selected", item.key === currentField.key ? "true" : "false");
-      const dot = document.createElement("i");
-      dot.className = "fdot fdot-" + item.key;
-      dot.setAttribute("aria-hidden", "true");
-      const text = document.createElement("span");
-      text.textContent = t("field.long." + item.key);
-      tab.appendChild(dot);
-      tab.appendChild(text);
-      tab.addEventListener("click", function () {
-        if (item.key !== activeKey) setActive(item.key);
-      });
-      tabs.appendChild(tab);
-    }
-    host.appendChild(tabs);
 
     const tokens = tokensOf(state);
     const index = dialect.fieldIndexOf(currentField.key);
