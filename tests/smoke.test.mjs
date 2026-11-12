@@ -48,9 +48,9 @@ test('两份字典键集合完全一致', () => {
 test('文案出口与语言回退', () => {
   const CP = loadCP({ files: ['i18n.js'] });
   assert.equal(CP.i18n.setLocale('zh-CN'), 'zh-CN');
-  assert.equal(CP.i18n.t('app.title'), 'Cron表达式生成器');
+  assert.equal(CP.i18n.t('app.title'), '可视化Cron生成器');
   CP.i18n.setLocale('en');
-  assert.equal(CP.i18n.t('app.title'), 'CronPulse');
+  assert.equal(CP.i18n.t('app.title'), 'Cron Pulse');
   CP.i18n.setLocale('fr-FR');
   assert.equal(CP.i18n.locale(), 'en');
   assert.equal(CP.i18n.t('toast.dowRemapped', { from: '5', to: '6' }),

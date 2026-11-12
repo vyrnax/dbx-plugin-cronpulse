@@ -202,7 +202,7 @@ jobs:
               seen[data.get("target", "?")] = data
 
           lines = [
-              "## CronPulse " + tag,
+              "## Cron Pulse " + tag,
               "",
               "| target | size | sha256 |",
               "|---|---:|---|",

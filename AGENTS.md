@@ -1,4 +1,4 @@
-# CronPulse 项目协作约定
+# Cron Pulse 项目协作约定
 
 本文件是本项目的工作约定，不进入发行包。所有改动都必须先跑通本文末尾的闸门清单。
 
@@ -13,7 +13,7 @@
 - `dom` / `dow` 同时受限时：Unix 取并集，Spring / Quartz 取交集且 Quartz 应恰有一个 `?`。
 - 夏令时默认 `skip`（缺失时刻该日无命中），可切 `shift`（顺延到间隙末端）；秋季重复时刻取较早 UTC 实例；被跳过的调度点仍单独列一行灰字。
 - 预览默认 10 条、可选 20 / 50、硬上限 200；向前扫描 5 年无命中即熔断；解析防抖 ≤ 120 ms，所有控件变化走同一条 `recompute()`。
-- 身份固定：`id=com.vyrnax.cronpulse`、`publisher=vyrnax`、中文名 `Cron表达式生成器`、英文名 `CronPulse`、许可 Apache-2.0；最低宿主 `dbx >= 0.6.21`、`host_api = 1`；权限只有 `host.storage`。
+- 身份固定：`id=com.vyrnax.cronpulse`、`publisher=vyrnax`、中文名 `Cron表达式生成器`、英文名 `Cron Pulse`、许可 Apache-2.0；最低宿主 `dbx >= 0.6.21`、`host_api = 1`；权限只有 `host.storage`。
 
 ## 2. 宿主与沙箱铁律
 

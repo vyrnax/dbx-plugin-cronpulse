@@ -145,6 +145,27 @@ test('host.storage 可用路径与降级路径都能读写', async () => {
   assert.equal(CP.bridge.storageWarned(), true);
 });
 
+test('宿主 token 与 appearance 标记不一致时，以实测底色为准', async () => {
+  const document = recordingDocument();
+  const sandbox = loadCP({
+    document: document,
+    theme: { appearance: 'dark', tokens: { '--color-background': '#ffffff', '--color-card': '#ffffff' } },
+    locale: 'zh-CN'
+  });
+  await sandbox.bridge.init();
+  const scheme = document.tokens.filter(function (pair) { return pair[0] === 'color-scheme'; }).pop();
+  assert.ok(scheme, '未写入 color-scheme');
+  assert.equal(scheme[1], 'light', '浅色 token + 残留 dark 标记必须判为 light');
+  assert.equal(sandbox.bridge.toneOf('#ffffff'), 'light');
+  assert.equal(sandbox.bridge.toneOf('#1e1e22'), 'dark');
+  assert.equal(sandbox.bridge.toneOf('rgb(30 30 34)'), 'dark');
+  assert.equal(sandbox.bridge.toneOf('rgb(248 250 252)'), 'light');
+  assert.equal(sandbox.bridge.toneOf('oklch(1 0 0)'), 'light');
+  assert.equal(sandbox.bridge.toneOf('oklch(0.2 0.01 270)'), 'dark');
+  assert.equal(sandbox.bridge.toneOf('hsl(220 10% 96%)'), 'light');
+  assert.equal(sandbox.bridge.toneOf(''), null);
+});
+
 test('新增文案键与字典无重复', () => {
   for (const key of ['msg.INPUT_TOO_LONG', 'banner.intlMissing', 'toast.undo',
     'snippets.title', 'snippets.supported', 'snippets.unsupported']) {

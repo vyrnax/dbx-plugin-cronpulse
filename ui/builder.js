@@ -36,7 +36,15 @@ CP.builder = (function () {
     for (const part of parts) {
       if (part === "{a}" && slots.a) controls.appendChild(slots.a);
       else if (part === "{b}" && slots.b) controls.appendChild(slots.b);
-      else if (part) controls.appendChild(document.createTextNode(part));
+      else if (part && part.trim()) {
+        /* 句子里的文字片段做成指向单选钮的 label：点文字能切到该写法，
+           而片段之间的空白不属于任何 label，点空白不生效。 */
+        const word = document.createElement("label");
+        word.className = "mode-word";
+        word.setAttribute("data-mode-word", "");
+        word.textContent = part.trim();
+        controls.appendChild(word);
+      }
     }
   }
 
@@ -347,13 +355,18 @@ CP.builder = (function () {
     }
 
     function addMode(name, labelKey, buildControls) {
+      /* 点击区域只覆盖「圆圈 + 文字」与「句子文字」，整行不做 label：
+         行宽是 1fr，做成整行 label 会让大片空白也能选中，极易误触。 */
+      const inline = !labelKey;
       const row = document.createElement("div");
-      row.className = labelKey ? "mode-row" : "mode-row mode-row-inline";
+      row.className = inline ? "mode-row mode-row-inline" : "mode-row";
       const label = document.createElement("label");
       label.className = "mode-label";
       const radio = document.createElement("input");
+      const radioId = "cp-mode-" + name;
       radio.type = "radio";
       radio.name = "cp-focus-mode";
+      radio.id = radioId;
       radio.value = name;
       radio.checked = mode === name;
       radio.addEventListener("change", function () {
@@ -362,6 +375,7 @@ CP.builder = (function () {
         if (seed !== null) update(state, currentField.key, seed);
         else renderFocus(lastResult, lastState);
       });
+      label.setAttribute("for", radioId);
       label.appendChild(radio);
       if (labelKey) {
         const text = document.createElement("span");
@@ -375,7 +389,12 @@ CP.builder = (function () {
       if (buildControls) {
         const controls = document.createElement("div");
         controls.className = "mode-controls";
-        buildControls(controls, mode === name);
+        /* 控件不再按「是否当前写法」禁用：未选中时改值即等于选中该写法
+           （change 把值写回 token，写法随之判定过来），
+           这样点句子文字、点控件都能切过来，而行内空白仍然无反应。 */
+        buildControls(controls, true);
+        const words = controls.querySelectorAll("[data-mode-word]");
+        for (const word of words) word.setAttribute("for", radioId);
         row.appendChild(controls);
       }
       host.appendChild(row);

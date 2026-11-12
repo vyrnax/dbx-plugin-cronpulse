@@ -240,9 +240,6 @@ CP.app = (function () {
     if (wrap) wrap.hidden = !spec.yearToggle;
     const card = $("card-year");
     if (card) card.hidden = !(spec.yearToggle && state.yearEnabled);
-    // 常驻红字：把当前方言的星期编号与日/周关系提示写进 dialect-hint（此前该元素从未被填充）
-    const hint = $("dialect-hint");
-    if (hint) hint.textContent = t(spec.hintKey);
   }
 
   function focusField(issue) {

@@ -38,7 +38,7 @@ DIALECT_NAMES = ["unix", "spring", "quartz", "robfig", "nodecron"]
 
 CRITICAL_IDS = [
     "app", "main", "statusbar", "toast",
-    "expr-input", "summary-row", "summary-label", "dialect-hint", "sel-dialect", "sel-timezone",
+    "expr-input", "summary-row", "summary-label", "sel-dialect", "sel-timezone",
     "sel-count", "sel-dst", "chk-year", "year-toggle-wrap", "tz-free",
     "status-dot", "status-text", "error-list", "builder", "field-cards",
     "card-sec", "card-min", "card-hour", "card-dom", "card-month", "card-dow", "card-year",

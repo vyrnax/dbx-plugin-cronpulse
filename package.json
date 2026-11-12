@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "CronPulse development-only test harness; the released package has no runtime dependencies.",
+  "description": "Development-only test harness for Cron Pulse; the released package has no runtime dependencies.",
   "scripts": {
     "test": "node --test",
     "domcheck": "python _domcheck.py",

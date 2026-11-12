@@ -4,7 +4,7 @@ CP.i18n = (function () {
 
   const DICT = {
     "zh-CN": {
-      "app.title": "Cron表达式生成器",
+      "app.title": "可视化Cron生成器",
       "app.offline": "完全离线",
       "expr.label": "Cron 表达式",
       "expr.placeholder": "输入 Cron 表达式，例如 0 0 12 * * ?",
@@ -214,7 +214,7 @@ CP.i18n = (function () {
       "preset.quarterHour": "每 15 分钟"
     },
     "en": {
-      "app.title": "CronPulse",
+      "app.title": "Cron Pulse",
       "app.offline": "Fully offline",
       "expr.label": "Cron expression",
       "expr.placeholder": "Enter a Cron expression, e.g. 0 0 12 * * ?",

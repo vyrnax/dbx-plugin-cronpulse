@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="app.title">Cron表达式生成器</title>
+<title data-i18n="app.title">可视化Cron生成器</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,11 +15,11 @@
       <div class="panel-head">
         <h2 data-i18n="builder.title">字段构建器</h2>
         <div class="builder-controls">
-          <label class="control"><span data-i18n="dialect.label">方言</span><select id="sel-dialect"></select></label>
+          <label class="control control-dialect"><span data-i18n="dialect.label">方言</span><select id="sel-dialect"></select></label>
           <label class="control"><span data-i18n="timezone.label">时区</span><select id="sel-timezone"></select></label>
           <input id="tz-free" class="tz-free" type="text" spellcheck="false" hidden
                  data-i18n-placeholder="timezone.freePlaceholder" placeholder="Area/City">
-          <label class="control"><span data-i18n="dst.label">缺失时刻</span><select id="sel-dst"></select></label>
+          <label class="control control-dst"><span data-i18n="dst.label">缺失时刻</span><select id="sel-dst"></select></label>
           <label id="year-toggle-wrap" class="year-toggle" hidden>
             <input type="checkbox" id="chk-year">
             <span data-i18n="builder.year">指定年份 (Year)</span>
@@ -52,7 +52,6 @@
       </div>
       <ul id="error-list" class="error-list"></ul>
       <div id="focus-editor" class="focus-editor"></div>
-      <div id="dialect-hint" class="dialect-hint"></div>
     </section>
 
     <div class="side-col">
