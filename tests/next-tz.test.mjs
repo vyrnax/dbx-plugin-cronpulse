@@ -176,11 +176,16 @@ test('prev 方向与年份字段', () => {
 });
 
 test('性能：10 次 count=50 查询不逐秒暴力枚举', () => {
-  const started = performance.now();
-  for (let index = 0; index < 10; index += 1) {
-    const result = upcoming('0 0 12 * * ?', 'quartz', { count: 50 });
-    assert.equal(result.times.length, 50);
+  // 墙钟计时在多文件并行跑测下会被调度噪声抬高（实测偶发 180ms+），
+  // 取 3 轮最快值：真暴力枚举会慢到秒级，最快轮同样超标，抓回归能力不变。
+  let elapsed = Infinity;
+  for (let round = 0; round < 3; round += 1) {
+    const started = performance.now();
+    for (let index = 0; index < 10; index += 1) {
+      const result = upcoming('0 0 12 * * ?', 'quartz', { count: 50 });
+      assert.equal(result.times.length, 50);
+    }
+    elapsed = Math.min(elapsed, performance.now() - started);
   }
-  const elapsed = performance.now() - started;
-  assert.ok(elapsed < 80, `10 次查询耗时 ${elapsed.toFixed(1)}ms，应 < 80ms`);
+  assert.ok(elapsed < 80, `10 次查询最快一轮耗时 ${elapsed.toFixed(1)}ms，应 < 80ms`);
 });
