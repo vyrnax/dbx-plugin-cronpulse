@@ -542,33 +542,45 @@ h2, h3 { margin: 0 0 10px; font-size: .95rem; font-weight: 650; letter-spacing: 
 .compare-value { font-family: var(--cp-mono); font-size: .75rem; word-break: break-all; }
 .compare-value mark { background: transparent; color: var(--cp-primary); font-weight: 700; }
 
-/* 提示浮层 */
+/* 提示浮层：顶部居中胶囊，深浅主题都走反色底保证可读 */
 .toast {
   position: fixed;
-  right: 14px;
-  bottom: 14px;
-  max-width: 300px;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(520px, calc(100% - 28px));
   background: var(--cp-fg);
   color: var(--cp-bg);
   border: 0;
-  border-radius: 12px;
-  padding: 9px 13px;
+  border-radius: var(--cp-r-pill);
+  padding: 9px 18px;
   box-shadow: var(--cp-shadow-2);
   font-size: .85rem;
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
 }
 .toast[hidden] { display: none; }
 .toast button {
   background: transparent;
   border: 0;
   color: var(--cp-primary);
+  color: color-mix(in srgb, var(--cp-primary) 55%, var(--cp-bg));
   font-weight: 650;
   padding: 0;
   width: auto;
+  white-space: nowrap;
+  cursor: pointer;
 }
 .toast button:hover { border-color: transparent; text-decoration: underline; }
+@keyframes cp-toast-in {
+  from { opacity: 0; transform: translate(-50%, -12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.toast.toast-in { animation: cp-toast-in .24s cubic-bezier(.32, .72, 0, 1); }
+@media (prefers-reduced-motion: reduce) { .toast.toast-in { animation: none; } }
 
 /* 交互细节：整张字段卡都是文本输入的热区 */
 .field-card {
@@ -694,14 +706,6 @@ h2, h3 { margin: 0 0 10px; font-size: .95rem; font-weight: 650; letter-spacing: 
 #btn-reset:hover { background: var(--cp-quiet); transform: translateY(-1px); }
 #btn-reset:active { transform: translateY(0) scale(.97); }
 
-/* 复制成功提示居中显示 */
-.toast.toast-centered {
-  top: 14px;
-  right: auto;
-  bottom: auto;
-  left: 50%;
-  transform: translateX(-50%);
-}
 
 /* 「缺失时刻」控件按当前产品形态隐藏 */
 .builder-controls .control-dst { display: none; }

@@ -200,13 +200,10 @@ CP.app = (function () {
     recompute();
   }
 
-  function showToast(text, actionLabel, action, options) {
+  function showToast(text, actionLabel, action, autoHide) {
     const toast = $("toast");
     if (!toast) return;
     if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
-    if (toast.classList && typeof toast.classList.remove === "function") {
-      toast.classList.remove("toast-centered");
-    }
     toast.textContent = "";
     const span = document.createElement("span");
     span.textContent = text;
@@ -215,7 +212,6 @@ CP.app = (function () {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = actionLabel;
-      btn.style.marginLeft = "10px";
       btn.addEventListener("click", function () {
         action();
         toast.hidden = true;
@@ -223,14 +219,19 @@ CP.app = (function () {
       toast.appendChild(btn);
     }
     toast.hidden = false;
-    if (options && options.centered && toast.classList && typeof toast.classList.add === "function") {
-      toast.classList.add("toast-centered");
+    // 提示一律顶部居中胶囊：重触发入场动画，默认 3 秒自动消失（传 0 可常驻）
+    const cl = toast.classList;
+    if (cl && typeof cl.remove === "function" && typeof cl.add === "function") {
+      cl.remove("toast-in");
+      void toast.offsetWidth;
+      cl.add("toast-in");
     }
-    if (options && options.autoHide) {
+    const ms = typeof autoHide === "number" ? autoHide : 3000;
+    if (ms > 0) {
       toastTimer = setTimeout(function () {
         toast.hidden = true;
         toastTimer = null;
-      }, options.autoHide);
+      }, ms);
     }
   }
 
@@ -279,7 +280,7 @@ CP.app = (function () {
 
   function copyText(text) {
     const finish = function (ok) {
-      if (ok) showToast(t("common.copied"), null, null, { centered: true, autoHide: 2000 });
+      if (ok) showToast(t("common.copied"));
     };
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
       navigator.clipboard.writeText(text).then(function () { finish(true); },
