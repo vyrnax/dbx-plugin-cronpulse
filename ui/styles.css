@@ -485,6 +485,7 @@ h2, h3 { margin: 0 0 10px; font-size: .95rem; font-weight: 650; letter-spacing: 
 .timeline-row:nth-child(odd) { background: var(--cp-quiet); }
 .timeline-wall { font-family: var(--cp-mono); font-size: .85rem; }
 .timeline-note { color: var(--cp-muted); font-size: .8rem; }
+.timeline-zone { color: var(--cp-muted); font-family: var(--cp-mono); font-size: .75rem; opacity: .8; }
 .timeline-skipped { opacity: .62; }
 .timeline-flag { color: var(--cp-warning); font-size: .75rem; }
 .timeline-canvas { width: 100%; height: 96px; display: block; }

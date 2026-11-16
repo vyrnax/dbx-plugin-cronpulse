@@ -9,6 +9,13 @@ CP.timeline = (function () {
       pad(wall.h) + ":" + pad(wall.mi) + ":" + pad(wall.s);
   }
 
+  function formatZone(item) {
+    // 时区切换必须可见：行尾挂 UTC 偏移，固定偏移区与 DST 区都能一眼分辨
+    const tz = CP.cron && CP.cron.tz;
+    if (!tz || !item || typeof item.offset !== "number") return "";
+    return tz.formatOffset(item.offset);
+  }
+
   function addRow(list, className, parts) {
     const row = document.createElement("li");
     row.className = className;
@@ -71,6 +78,8 @@ CP.timeline = (function () {
       }
       const item = row.item;
       const parts = [{ text: formatWall(item.wall), className: "timeline-wall" }];
+      const zone = formatZone(item);
+      if (zone) parts.push({ text: zone, className: "timeline-zone" });
       if (item.status === "ambiguous") {
         parts.push({ text: CP.i18n.t("timeline.repeated"), className: "timeline-note" });
       }
