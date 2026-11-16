@@ -35,6 +35,9 @@ CP.app = (function () {
   let lastResult = null;
   let tzLimited = false;
   let toastTimer = null;
+  let toastHovered = false;
+  let toastRemaining = 0;
+  let toastStartedAt = 0;
 
   function $(id) {
     return document.getElementById(id);
@@ -223,25 +226,40 @@ CP.app = (function () {
       btn.textContent = actionLabel;
       btn.addEventListener("click", function () {
         action();
-        toast.hidden = true;
+        hideToastNow();
       });
       toast.appendChild(btn);
     }
     toast.hidden = false;
-    // 提示一律顶部居中胶囊：重触发入场动画，默认 3 秒自动消失（传 0 可常驻）
+    // 提示一律顶部居中胶囊：重触发入场动画，默认 3 秒自动消失（传 0 可常驻）；
+    // 鼠标悬停期间暂停倒计时，移出后继续跑剩余时长
     const cl = toast.classList;
     if (cl && typeof cl.remove === "function" && typeof cl.add === "function") {
       cl.remove("toast-in");
       void toast.offsetWidth;
       cl.add("toast-in");
     }
-    const ms = typeof autoHide === "number" ? autoHide : 3000;
-    if (ms > 0) {
-      toastTimer = setTimeout(function () {
-        toast.hidden = true;
-        toastTimer = null;
-      }, ms);
-    }
+    toastRemaining = typeof autoHide === "number" ? autoHide : 3000;
+    armToastHide();
+  }
+
+  function hideToastNow() {
+    const toast = $("toast");
+    if (toast) toast.hidden = true;
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+    toastRemaining = 0;
+  }
+
+  // 悬停时只记下剩余时长不启动定时器；移出后按剩余时长继续，倒计时不会在悬停期间流逝
+  function armToastHide() {
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+    if (toastRemaining <= 0 || toastHovered) return;
+    toastStartedAt = Date.now();
+    toastTimer = setTimeout(function () {
+      toastTimer = null;
+      toastRemaining = 0;
+      hideToastNow();
+    }, toastRemaining);
   }
 
   function renderHint() {
@@ -480,6 +498,22 @@ CP.app = (function () {
         const input = $("expr-input");
         if (input) input.value = state.expr;
         recompute();
+      });
+    }
+    const toastEl = $("toast");
+    if (toastEl && toastEl.addEventListener) {
+      toastEl.addEventListener("mouseenter", function () {
+        if (toastHovered) return;
+        toastHovered = true;
+        if (!toastTimer) return;
+        // 冻结已消耗时长，只保留剩余部分
+        toastRemaining = Math.max(0, toastRemaining - (Date.now() - toastStartedAt));
+        clearTimeout(toastTimer);
+        toastTimer = null;
+      });
+      toastEl.addEventListener("mouseleave", function () {
+        toastHovered = false;
+        armToastHide();
       });
     }
     const exprRow = document.querySelector ? document.querySelector(".expr-row") : null;
