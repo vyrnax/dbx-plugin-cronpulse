@@ -1,6 +1,6 @@
 {
   "name": "dbx-plugin-cronpulse",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Development-only test harness for Cron Pulse; the released package has no runtime dependencies.",

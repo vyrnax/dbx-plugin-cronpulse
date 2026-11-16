@@ -5,11 +5,14 @@ import path from 'node:path';
 import { loadCP, paths } from './_loader.mjs';
 
 const manifest = JSON.parse(fs.readFileSync(path.join(paths.ROOT, 'manifest.json'), 'utf8'));
+const pkg = JSON.parse(fs.readFileSync(path.join(paths.ROOT, 'package.json'), 'utf8'));
 
 test('清单身份与权限固定', () => {
   assert.equal(manifest.id, 'com.vyrnax.cronpulse');
   assert.equal(manifest.publisher, 'vyrnax');
-  assert.equal(manifest.version, '0.1.0');
+  // 版本号随发布递增，不硬编码；真源是 manifest，package.json 必须与之对齐
+  assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(pkg.version, manifest.version);
   assert.equal(manifest.manifest_version, 1);
   assert.deepEqual(manifest.permissions, ['host.storage']);
   assert.equal(manifest.engines.dbx, '>=0.6.21');

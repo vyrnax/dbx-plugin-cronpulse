@@ -16,7 +16,7 @@
   "source": "https://github.com/vyrnax/dbx-plugin-cronpulse",
   "homepage": "https://github.com/vyrnax/dbx-plugin-cronpulse",
   "license": "Apache-2.0",
-  "releaseNotes": "首个版本：Cron 全方言引擎、可读描述、时区与 DST 感知的时间预测。",
+  "releaseNotes": "执行时间线显示 UTC 偏移，时区切换效果即时可见；提示改为顶部居中胶囊并支持悬停暂停倒计时；常用预设改为方言无关概念，载入不再改变当前方言，记法按当前方言自动换算。",
   "localizations": {
     "en": {
       "name": "Cron Pulse",
