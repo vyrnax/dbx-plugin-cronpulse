@@ -7,16 +7,31 @@ CP.store = (function () {
 
   const memory = { favorites: [], history: [], prefs: {} };
 
+  // 预设是方言无关的概念：source 只是规范记法，展示与应用时按当前方言
+  // 经转换引擎重铸，不绑定任何具体方言，也不新增分支逻辑。
   const PRESETS = [
-    { id: "minute", dialect: "unix", expr: "* * * * *", emoji: "⏱" },
-    { id: "hourly", dialect: "unix", expr: "0 * * * *", emoji: "🕐" },
-    { id: "midnight", dialect: "unix", expr: "0 0 * * *", emoji: "🌙" },
-    { id: "eight", dialect: "unix", expr: "0 8 * * *", emoji: "☀" },
-    { id: "mondayNine", dialect: "unix", expr: "0 9 * * 1", emoji: "📅" },
-    { id: "monthlyFirst", dialect: "unix", expr: "0 0 1 * *", emoji: "🗓" },
-    { id: "workdaysNine", dialect: "unix", expr: "0 9-18 * * 1-5", emoji: "💼" },
-    { id: "quarterHour", dialect: "unix", expr: "*/15 * * * *", emoji: "⚡" }
+    { id: "minute", source: "unix", expr: "* * * * *", emoji: "⏱" },
+    { id: "hourly", source: "unix", expr: "0 * * * *", emoji: "🕐" },
+    { id: "midnight", source: "unix", expr: "0 0 * * *", emoji: "🌙" },
+    { id: "eight", source: "unix", expr: "0 8 * * *", emoji: "☀" },
+    { id: "mondayNine", source: "unix", expr: "0 9 * * 1", emoji: "📅" },
+    { id: "monthlyFirst", source: "unix", expr: "0 0 1 * *", emoji: "🗓" },
+    { id: "workdaysNine", source: "unix", expr: "0 9-18 * * 1-5", emoji: "💼" },
+    { id: "quarterHour", source: "unix", expr: "*/15 * * * *", emoji: "⚡" }
   ];
+
+  function presetExpression(preset, dialectName) {
+    const source = CP.cron.dialect.get(preset.source);
+    const target = CP.cron.dialect.get(dialectName) || source;
+    if (!source || !target) return { expression: preset.expr, ok: true, code: null };
+    const ast = CP.cron.parse.parse(preset.expr, source);
+    const converted = ast.normalized
+      ? CP.cron.convert.convert(ast, source, target.name) : null;
+    if (converted && converted.expression) {
+      return { expression: converted.expression, ok: !!converted.ok, code: converted.code || null };
+    }
+    return { expression: preset.expr, ok: true, code: null };
+  }
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -93,7 +108,7 @@ CP.store = (function () {
     return persist("history");
   }
 
-  function presetChip(preset, active, handler) {
+  function presetChip(preset, expression, active, handler) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "preset-chip";
@@ -111,7 +126,7 @@ CP.store = (function () {
     top.appendChild(label);
     const code = document.createElement("code");
     code.className = "preset-cron";
-    code.textContent = preset.expr;
+    code.textContent = expression;
     button.appendChild(top);
     button.appendChild(code);
     if (handler) button.addEventListener("click", handler);
@@ -124,8 +139,9 @@ CP.store = (function () {
     if (presetArea) {
       presetArea.textContent = "";
       for (const preset of PRESETS) {
-        const active = preset.expr === state.expr && preset.dialect === state.dialect;
-        presetArea.appendChild(presetChip(preset, active, function () {
+        const shown = presetExpression(preset, state.dialect);
+        const active = shown.expression === state.expr;
+        presetArea.appendChild(presetChip(preset, shown.expression, active, function () {
           if (callbacks.applyPreset) callbacks.applyPreset(preset);
         }));
       }
@@ -133,7 +149,7 @@ CP.store = (function () {
   }
 
   return {
-    load: load, render: render, presets: PRESETS,
+    load: load, render: render, presets: PRESETS, presetExpression: presetExpression,
     favorites: favorites, history: history, prefs: prefs,
     addFavorite: addFavorite, removeFavorite: removeFavorite,
     toggleFavorite: toggleFavorite, isFavorite: isFavorite,

@@ -5,17 +5,25 @@ import { loadCP } from './_loader.mjs';
 const CP = loadCP();
 const D = CP.cron.dialect;
 
-test('预设 chips 收敛为 8 个 Unix 预设，且每条都能被自身方言校验', () => {
+test('预设是方言无关概念：8 条概念在每种可选方言下都能重铸为合法表达式', () => {
   const presets = CP.store.presets;
   assert.equal(presets.length, 8);
-  assert.equal(presets.filter((item) => item.dialect === 'unix').length, 8);
-  assert.equal(presets.filter((item) => item.dialect === 'quartz').length, 0);
   for (const preset of presets) assert.ok(preset.emoji, '缺图标: ' + preset.id);
   for (const preset of presets) {
-    const dialect = D.get(preset.dialect);
-    assert.ok(dialect, preset.id);
+    const source = D.get(preset.source);
+    assert.ok(source, preset.id);
+    for (const name of D.list()) {
+      const shown = CP.store.presetExpression(preset, name);
+      assert.ok(shown.expression, '重铸为空: ' + preset.id + ' -> ' + name);
+      assert.equal(shown.ok, true, '重铸有损: ' + preset.id + ' -> ' + name);
+      const spec = D.get(name);
+      const validation = CP.cron.validate.validate(
+        CP.cron.parse.parse(shown.expression, spec), spec, { tz: 'UTC' }
+      );
+      assert.notEqual(validation.status, 'error', preset.id + ' -> ' + name + ': ' + shown.expression);
+    }
     const validation = CP.cron.validate.validate(
-      CP.cron.parse.parse(preset.expr, dialect), dialect, { tz: 'UTC' }
+      CP.cron.parse.parse(preset.expr, source), source, { tz: 'UTC' }
     );
     assert.notEqual(validation.status, 'error', preset.expr);
     assert.ok(CP.i18n.dict['zh-CN']['preset.' + preset.id], 'zh-CN 缺 preset.' + preset.id);

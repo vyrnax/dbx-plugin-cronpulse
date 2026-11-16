@@ -147,8 +147,17 @@ CP.app = (function () {
   function storeHandlers() {
     return {
       applyPreset: function (preset) {
-        applyEntry(preset);
-        CP.store.pushHistory({ expr: preset.expr, dialect: preset.dialect, tz: state.tz });
+        // 预设是概念：方言保持用户当前选择，表达式按该方言重铸后载入
+        const shown = CP.store.presetExpression(preset, state.dialect);
+        state.expr = shown.expression;
+        state.yearEnabled = String(state.expr).trim().split(/\s+/).length > currentDialect().fields.length;
+        const input = $("expr-input");
+        if (input) input.value = state.expr;
+        const year = $("chk-year");
+        if (year) year.checked = state.yearEnabled;
+        if (!shown.ok && shown.code) showToast(t("msg." + shown.code));
+        CP.store.pushHistory({ expr: state.expr, dialect: state.dialect, tz: state.tz });
+        recompute();
       },
       loadEntry: function (entry) { applyEntry(entry); },
       toggleFavorite: function (entry) {
